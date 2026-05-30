@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "JUDO i-dos einrichten",
+        "description": "Bitte gib deine Zugangsdaten für myjudo.eu ein.",
+        "data": {
+          "username": "Benutzername",
+          "password": "Passwort",
+          "serial_number": "Seriennummer (am Gerät / in der App)",
+          "scan_interval": "Abrufintervall (Minuten)"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Benutzername oder Passwort ungültig.",
+      "cannot_connect": "Gerät nicht erreichbar. Bitte prüfe deine Verbindung."
+    },
+    "abort": {
+      "already_configured": "Gerät ist bereits konfiguriert."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "JUDO i-dos Optionen",
+        "data": {
+          "scan_interval": "Abrufintervall (Minuten)"
+        }
+      }
+    }
+  }
+}

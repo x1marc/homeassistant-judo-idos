@@ -1,0 +1,161 @@
+# JUDO i-dos — Home Assistant Integration
+
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![Validate](https://github.com/x1marc/homeassistant-judo-idos/actions/workflows/validate.yml/badge.svg)](https://github.com/x1marc/homeassistant-judo-idos/actions/workflows/validate.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+HACS-kompatible Custom Integration, die Verbrauchs- und Statusdaten eines
+**JUDO i-dos** Dosiergeräts über die JUDO-Cloud (OptiSoft-Relay) in Home
+Assistant einbindet.
+
+> ✅ Funktioniert **ohne** separates *Connectivity Module* — das i-dos
+> verbindet sich selbst per WLAN mit der JUDO-Cloud.
+
+---
+
+## Features
+
+- 🔐 Einrichtung komplett über die HA-Oberfläche (Config Flow)
+- ⏱️ Einstellbares Abrufintervall (5–60 Minuten)
+- 📊 18 Sensoren: Wasserverbrauch (Tag/Woche/Monat/Jahr), Durchfluss,
+  Wasserhärte, Gerätealter, Wartungsdaten u. a.
+- 🔄 Automatischer Login + Connect bei jedem Abruf (Token ist kurzlebig)
+- 🌐 DNS-Auflösung mit fester IP als Fallback (überlebt einen Server-Umzug)
+
+---
+
+## Sensoren
+
+| Sensor | Einheit | Beschreibung |
+|---|---|---|
+| Gesamtwassermenge | m³ / L | Gesamtverbrauch (Total-Increasing) |
+| Verbrauch heute | L | Summe des laufenden Tages |
+| Verbrauch Woche | L | Summe der laufenden Woche (Mo–So) |
+| Verbrauch Monat | m³ / L | Summe des laufenden Monats |
+| Verbrauch Jahr | m³ / L | Summe des laufenden Jahres |
+| Aktueller Wasserdurchfluss | L/h | Momentaner Durchfluss |
+| Ø Wasserverbrauch täglich | L/d | Durchschnitt pro Tag |
+| Natürliche Wasserhärte | °dH | Eingestellte Rohwasserhärte |
+| Salzmenge / Dosiermenge | — | Status der Dosierlösung |
+| Gerätealter | Jahre | Berechnet aus der Inbetriebnahme |
+| Inbetriebnahme / Service-Datum | Datum | Wartungstermine (Diagnose) |
+| Modul-Firmware / Seriennummer | — | Diagnose |
+
+---
+
+## Installation
+
+### Über HACS (empfohlen)
+
+1. HACS → **Integrationen** → ⋮ → **Benutzerdefinierte Repositories**
+2. URL `https://github.com/x1marc/homeassistant-judo-idos` hinzufügen,
+   Kategorie **Integration**
+3. **JUDO i-dos** installieren
+4. Home Assistant neu starten
+
+[![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=x1marc&repository=homeassistant-judo-idos&category=integration)
+
+### Manuell
+
+1. Ordner `custom_components/myjudo` nach `config/custom_components/` kopieren
+2. Home Assistant neu starten
+
+---
+
+## Einrichtung
+
+**Einstellungen → Geräte & Dienste → Integration hinzufügen → „JUDO i-dos"**
+
+| Feld | Beispiel | Hinweis |
+|---|---|---|
+| Benutzername | `dein-login` | dein myjudo.eu-Login |
+| Passwort | `••••••••` | Klartext (kein MD5) |
+| Seriennummer | `NNNNN` | steht am Gerät / in der App |
+| Abrufintervall | `15` | Minuten (5–60) |
+
+Das Abrufintervall lässt sich später über **Konfigurieren** auf der
+Integrations-Karte ändern.
+
+---
+
+## Beispiele
+
+Im Ordner [`examples/`](examples/) liegt eine fertige Automation, die dich
+**einmal jährlich an die Wartung** erinnert (persistente Notiz).
+
+---
+
+## Funktionsweise
+
+```
+Login    →  GET /?group=register&command=login&user=…&password=…&role=customer
+Connect  →  GET /?token=…&group=register&command=connect&parameter=i-dos&serial number=…
+Daten    →  GET /?token=…&group=consumption&command=water total   (sequenziell)
+```
+
+- **Server:** `https://www.my-judo.com:8124/` (OptiSoft-Relay)
+- Jeder Abruf macht einen frischen Login (Token läuft schnell ab)
+- Datenabrufe laufen **sequenziell** — der Geräte-Relay verarbeitet nur eine
+  Anfrage gleichzeitig
+
+### Technische Besonderheiten
+
+Der JUDO-Server ist alt (TLS 1.2, selbstsigniertes Zertifikat). HA Core nutzt
+OpenSSL 3.x (strenger). Die Integration baut die HTTPS-Verbindung daher mit
+Pythons `ssl`/`http.client` selbst auf:
+
+| Problem | Ursache | Lösung |
+|---|---|---|
+| `SSLEOFError` beim Handshake | OpenSSL 3.x bietet TLS 1.3 an, Server bricht ab | TLS auf 1.2 pinnen |
+| Zertifikat abgelehnt | `SECLEVEL=2` zu streng für altes Cert | `SECLEVEL=1` + `CERT_NONE` |
+| `Can't use SSL_get_servername` | rohe IP als SNI gesendet | Hostname als SNI, IP nur fürs TCP |
+| Alle Abrufe `TimeoutError` | parallele Anfragen | sequenziell + kleine Pause |
+
+---
+
+## Fehlersuche
+
+Debug-Logging (`configuration.yaml`):
+
+```yaml
+logger:
+  default: warning
+  logs:
+    custom_components.myjudo: debug
+```
+
+Live mitlesen: `ha core logs -f | grep JUDO`
+
+| Meldung | Bedeutung |
+|---|---|
+| `Login failed: …` | Benutzername/Passwort falsch |
+| `Connect failed: …` | Seriennummer falsch oder Gerät offline |
+| `STEP 1 TCP FAILED` | Port 8124 blockiert (Firewall) |
+| `STEP 2 SSL FAILED` | TLS-Problem |
+| `HTTP failed … TimeoutError` | Gerät war offline / Relay überlastet |
+
+> Ist das Gerät in der myjudo.eu-App **offline**, liefert auch die Integration
+> keine Daten — zuerst die WLAN-Verbindung des i-dos prüfen.
+
+---
+
+## Kompatibilität
+
+Getestet mit der Geräteklasse **i-dos**. Andere JUDO-Geräte (i-soft, ZEWA)
+nutzen teils andere Kommandos und sind nicht getestet — Feedback / PRs
+willkommen.
+
+## Haftungsausschluss
+
+Inoffizielle Integration, **nicht** von JUDO unterstützt oder geprüft.
+Nutzung auf eigene Verantwortung. „JUDO" und „i-dos" sind Marken der
+jeweiligen Inhaber.
+
+## Mitwirken
+
+Issues und Pull Requests sind willkommen! Bitte bei Fehlern die
+JUDO-Log-Zeilen (`grep JUDO`) mit anhängen.
+
+## Lizenz
+
+[MIT](LICENSE)

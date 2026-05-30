@@ -1,0 +1,55 @@
+# ─────────────────────────────────────────────────────────────────────────
+# JUDO i-dos — Service-Erinnerung (persistente Notiz, einmal pro Jahr)
+#
+# Erinnert einmal jährlich, sobald ein Jahr seit dem letzten Service vergangen
+# ist. Die Notiz erscheint in Home Assistant (Glocken-Symbol). Sobald JUDO ein
+# neues Service-Datum meldet (Wartung erfolgt), verschiebt sich der nächste
+# Jahrestag automatisch — keine weitere Erinnerung bis dahin.
+#
+# EINBAU:
+#   Einstellungen → Automationen & Szenen → "+ Automation erstellen"
+#   → ⋮ (oben rechts) → "In YAML bearbeiten" → diesen Inhalt einfügen.
+#
+# ENTITÄT prüfen:
+#   sensor.judo_i_dos_service_datum
+#   Falls anders benannt: Einstellungen → Geräte → JUDO i-dos → Service-Datum.
+# ─────────────────────────────────────────────────────────────────────────
+
+alias: JUDO i-dos Service-Erinnerung
+description: Persistente Notiz, sobald 1 Jahr seit dem letzten Service vergangen ist.
+mode: single
+
+trigger:
+  # Täglich um 09:00 prüfen
+  - platform: time
+    at: "09:00:00"
+
+condition:
+  # Nur wenn der Service-Sensor einen gültigen Wert hat
+  - condition: template
+    value_template: >
+      {{ states('sensor.judo_i_dos_service_datum') not in
+         ['unknown', 'unavailable', 'none', ''] }}
+  # Genau am Jahrestag auslösen (≥ 365 Tage seit Service, und Rest = 0)
+  - condition: template
+    value_template: >
+      {% set svc = states('sensor.judo_i_dos_service_datum') | as_datetime | as_local %}
+      {% set days = (now() - svc).days %}
+      {{ days >= 365 and (days % 365) == 0 }}
+
+action:
+  - variables:
+      svc_date: >
+        {{ (states('sensor.judo_i_dos_service_datum') | as_datetime | as_local)
+           .strftime('%d.%m.%Y') }}
+      years: >
+        {% set svc = states('sensor.judo_i_dos_service_datum') | as_datetime | as_local %}
+        {{ ((now() - svc).days / 365) | round(0, 'floor') | int }}
+
+  - service: persistent_notification.create
+    data:
+      title: "💧 JUDO i-dos Wartung fällig"
+      notification_id: judo_service_reminder
+      message: >
+        Die jährliche Wartung deines JUDO i-dos ist fällig.
+        Letzter Service: {{ svc_date }} (vor {{ years }} Jahr/en).

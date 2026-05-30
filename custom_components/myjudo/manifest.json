@@ -1,0 +1,13 @@
+{
+  "domain": "myjudo",
+  "name": "JUDO i-dos",
+  "version": "1.4.0",
+  "documentation": "https://github.com/x1marc/homeassistant-judo-idos",
+  "issue_tracker": "https://github.com/x1marc/homeassistant-judo-idos/issues",
+  "requirements": [],
+  "config_flow": true,
+  "codeowners": ["@x1marc"],
+  "integration_type": "device",
+  "iot_class": "cloud_polling",
+  "loggers": ["custom_components.myjudo"]
+}
