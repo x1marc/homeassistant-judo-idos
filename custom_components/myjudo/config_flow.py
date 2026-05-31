@@ -40,8 +40,12 @@ async def _try_login(username: str, password: str, serial: str) -> str | None:
     })
     _LOGGER.debug("JUDO login: %s", login)
 
+    if not login:
+        # Empty = no/invalid response from server (timeout, outage)
+        _LOGGER.warning("JUDO server not responding during login")
+        return "cannot_connect"
     if login.get("status") != "ok" or "token" not in login:
-        _LOGGER.warning("JUDO login failed: %s", login.get("data"))
+        _LOGGER.warning("JUDO login rejected: %s", login.get("data"))
         return "invalid_auth"
 
     token = login["token"]
@@ -56,8 +60,11 @@ async def _try_login(username: str, password: str, serial: str) -> str | None:
     })
     _LOGGER.debug("JUDO connect: %s", conn)
 
+    if not conn:
+        _LOGGER.warning("JUDO server not responding during connect")
+        return "cannot_connect"
     if conn.get("status") != "ok":
-        _LOGGER.warning("JUDO connect failed: %s", conn.get("data"))
+        _LOGGER.warning("JUDO connect rejected: %s", conn.get("data"))
         return "cannot_connect"
 
     return None

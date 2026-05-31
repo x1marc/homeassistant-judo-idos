@@ -65,8 +65,14 @@ class MyJudoCoordinator(DataUpdateCoordinator):
             "password": self._password,
             "role": "customer",
         })
+        if not login:
+            raise UpdateFailed(
+                "JUDO server not responding (timeout) — likely a server-side "
+                "outage at my-judo.com. Will retry next interval."
+            )
         if login.get("status") != "ok" or "token" not in login:
-            raise UpdateFailed(f"Login failed: {login.get('data')}")
+            raise UpdateFailed(f"Login rejected: {login.get('data')} "
+                               "(check username/password)")
         token = login["token"]
         _LOGGER.debug("JUDO login ok")
         await asyncio.sleep(0.3)
@@ -79,8 +85,14 @@ class MyJudoCoordinator(DataUpdateCoordinator):
             "parameter": "i-dos",
             "serial number": self._serial,
         })
+        if not conn:
+            raise UpdateFailed(
+                "JUDO server not responding on connect (timeout). "
+                "Will retry next interval."
+            )
         if conn.get("status") != "ok":
-            raise UpdateFailed(f"Connect failed: {conn.get('data')}")
+            raise UpdateFailed(f"Connect rejected: {conn.get('data')} "
+                               "(check serial number / device online?)")
         _LOGGER.debug("JUDO connect ok")
         await asyncio.sleep(0.3)
 

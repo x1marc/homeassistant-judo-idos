@@ -1,19 +1,16 @@
 """JUDO i-dos API — raw SSL socket injected into http.client for correct HTTP parsing.
 
-Why not aiohttp / requests?
-    HA Core runs on OpenSSL 3.x. The old JUDO server (TLS 1.2 only, self-signed,
-    weak cert) gets dropped by OpenSSL 3.x defaults:
-      * TLS 1.3 ClientHello → server closes connection → SSLEOFError
-      * SECLEVEL=2 → server cert rejected during handshake
-    We build the SSL socket manually so we control TLS version, security level
-    and SNI hostname, then hand it to http.client for correct HTTP parsing
-    (chunked transfer encoding, content-length, keep-alive).
+aiohttp's SSL stack fails for this server in HA's Python environment.
+Solution: create SSL socket manually (controls SNI + TLS version + security
+level), then inject into http.client.HTTPSConnection which handles chunked
+transfer encoding, content-length, keep-alive.
 
-Host resolution strategy (robust / future-proof):
-    1. Resolve API_HOST via normal DNS — preferred, survives a server move.
-    2. If DNS fails (or as a last resort), use the hardcoded API_IP fallback.
-    SNI always uses API_HOST regardless of which IP we connect to, because the
-    server validates the SNI hostname.
+Robustness:
+  * Split timeouts — fast TCP/SSL connect, separate (moderate) read timeout.
+    A JUDO server outage (socket connects but no HTTP answer) then fails in
+    ~20 s instead of hanging 30 s.
+  * DNS first, hardcoded IP fallback. Only connection-level failures retry the
+    next IP; the HTTP phase runs once so a slow relay never double-times-out.
 """
 from __future__ import annotations
 
@@ -25,7 +22,7 @@ import socket
 import ssl
 import urllib.parse
 
-from .const import API_HOST, API_IP, API_PORT, API_TIMEOUT
+from .const import API_CONNECT_TIMEOUT, API_HOST, API_IP, API_PORT, API_TIMEOUT
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -73,16 +70,23 @@ def _candidate_ips() -> list[str]:
 
 
 def _connect(ip: str, ctx: ssl.SSLContext) -> ssl.SSLSocket:
-    """TCP + SSL handshake to a single IP. SNI uses API_HOST. Raises on failure."""
-    raw = socket.create_connection((ip, API_PORT), timeout=API_TIMEOUT)
+    """TCP + SSL handshake to one IP, using the short connect timeout.
+
+    SNI uses API_HOST. After the handshake the socket is switched to the
+    (longer) read timeout for the HTTP phase. Raises on failure.
+    """
+    raw = socket.create_connection((ip, API_PORT), timeout=API_CONNECT_TIMEOUT)
     try:
-        return ctx.wrap_socket(raw, server_hostname=API_HOST)
+        ssl_sock = ctx.wrap_socket(raw, server_hostname=API_HOST)
     except Exception:
         try:
             raw.close()
         except Exception:
             pass
         raise
+    # Reads (waiting for the device relay) get the longer timeout.
+    ssl_sock.settimeout(API_TIMEOUT)
+    return ssl_sock
 
 
 def _http(ssl_sock: ssl.SSLSocket, ctx: ssl.SSLContext, params: dict) -> dict:
@@ -96,10 +100,21 @@ def _http(ssl_sock: ssl.SSLSocket, ctx: ssl.SSLContext, params: dict) -> dict:
         conn.request(
             "GET",
             "/?" + query,
-            headers={"User-Agent": _UA, "Accept": "application/json"},
+            headers={
+                "User-Agent": _UA,
+                "Accept": "application/json",
+                "Connection": "close",
+            },
         )
         resp = conn.getresponse()
         body = resp.read()
+        if resp.status != 200:
+            _LOGGER.warning(
+                "JUDO [%s] HTTP %s response", params.get("command", "?"), resp.status
+            )
+            return {}
+        if not body:
+            return {}
         return json.loads(body.decode())
     finally:
         conn.close()
@@ -136,6 +151,9 @@ def _sync_request(params: dict) -> dict:
 
     try:
         return _http(ssl_sock, ctx, params)
+    except (TimeoutError, socket.timeout) as exc:
+        _LOGGER.warning("JUDO [%s] no response from server (timeout) via %s", cmd, used_ip)
+        raise
     except Exception as exc:
         _LOGGER.warning(
             "JUDO [%s] HTTP failed via %s: %s - %s",
