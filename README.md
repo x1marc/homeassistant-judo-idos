@@ -36,8 +36,14 @@ Assistant einbindet.
 | Aktueller Wasserdurchfluss | L/h | Momentaner Durchfluss |
 | Ø Wasserverbrauch täglich | L/d | Durchschnitt pro Tag |
 | Natürliche Wasserhärte | °dH | Eingestellte Rohwasserhärte |
-| Salzmenge / Dosiermenge | — | Status der Dosierlösung |
-| Gerätealter | Jahre | Berechnet aus der Inbetriebnahme |
+| Dosiermenge / -Einstellung | — | Aktuelle Dosierung + Modus (z. B. „normal") |
+| **Minerallösung Vorrat** | % | Füllstand (aus Rest/Kapazität berechnet) |
+| Minerallösung Rest / Behältergröße | mL | Verbleibende Menge / Kapazität (RFID-Tank) |
+| Minerallösung Reichweite / Typ | — | Restreichweite / Kartuschen-Sorte |
+| **Gerätestatus** | — | Fehler/Warnung im Klartext (Diagnose) |
+| Minerallösung Haltbarkeit / Mengenstatus | — | MHD- & Mengen-Warnung (Diagnose) |
+| Verbindung Steuerelektronik | — | Modul ↔ Geräte-Elektronik (Diagnose) |
+| Gerätealter | Jahre | Berechnet aus der Inbetriebnahme (Diagnose) |
 | Inbetriebnahme / Service-Datum | Datum | Wartungstermine (Diagnose) |
 | Modul-Firmware / Seriennummer | — | Diagnose |
 
@@ -155,6 +161,20 @@ jeweiligen Inhaber.
 
 Issues und Pull Requests sind willkommen! Bitte bei Fehlern die
 JUDO-Log-Zeilen (`grep JUDO`) mit anhängen.
+
+## Changelog
+
+- **1.7.1** – Status-Sensoren in die Diagnose-Kategorie verschoben
+- **1.7.0** – Minerallösung Reichweite/Typ/MHD/Mengenstatus, Verbindungsstatus
+  Steuerelektronik (entdeckt via ParameterController)
+- **1.6.0** – Minerallösungs-Sensoren (Vorrat %, Rest & Behältergröße in mL),
+  Dosiermenge-Einstellung, Gerätestatus als Klartext
+- **1.5.0** – Robustheit: getrennte Connect-/Read-Timeouts, klarere Fehler
+- **1.4.0** – Diagnose-Sensoren: Gerätealter, Inbetriebnahme, Service, Modul-FW
+- **1.3.0** – Liter-Sensoren zusätzlich zu m³
+- **1.2.0** – Verbrauch heute/Woche/Monat/Jahr
+- **1.1.0** – DNS mit IP-Fallback, Phasen-Logging
+- **1.0.0** – Erste Version
 
 ## Lizenz
 

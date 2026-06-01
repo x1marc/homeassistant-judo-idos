@@ -12,6 +12,17 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+# i-dos error/warning codes (from the JUDO portal: optisoftWarnings["dos"]).
+_ERROR_STATES: dict[int, str] = {
+    0:  "OK",
+    1:  "Störung! Pumpenantrieb defekt",
+    2:  "Störung! Minerallösungserkennung defekt",
+    3:  "Minerallösungsbehälter leer",
+    15: "Minerallösungsvorrat gering",
+    16: "Reichweite des Minerallösungsbehälters überschritten",
+    17: "Mindesthaltbarkeitsdatum der Minerallösung überschritten",
+}
+
 
 def _sum_values(raw) -> int | None:
     """Sum a space-separated value string, ignoring -1 (no data) entries.
@@ -124,6 +135,17 @@ class MyJudoCoordinator(DataUpdateCoordinator):
                              year=now.year, month=now.month)
         yearly  = await _get("consumption", "water yearly", year=now.year)
 
+        # Mineral solution (i-dos specific)
+        dilution   = await _get("info", "dilution quantity")      # remaining ml
+        tanktype   = await _get("info", "rfid tank type")         # tank capacity ml
+        concentr   = await _get("settings", "concentration adjustment")  # e.g. "normal"
+        errstate   = await _get("state", "error state")           # 0 = ok
+        dil_range  = await _get("consumption", "dilution range")  # remaining range
+        dil_type   = await _get("info", "rfid dilution type")     # e.g. "jul-c"
+        dil_expiry = await _get("state", "dilution expiry state") # 0 = ok
+        dil_qstate = await _get("state", "dilution quantity state")  # 0 = ok
+        ec_conn    = await _get("state", "electrical control connection state")  # 0 = ok
+
         # Static device info (rarely changes, but cheap to fetch)
         devcomm    = await _get("version", "devcomm version")
         init_dt    = await _get("contract", "init date")
@@ -174,6 +196,24 @@ class MyJudoCoordinator(DataUpdateCoordinator):
             delta = datetime.now(timezone.utc) - init_date
             device_age = round(delta.days / 365.25, 1)
 
+        # Mineral solution level: remaining / tank capacity -> percent
+        mineral_ml   = _int(dilution.get("data"))
+        tank_ml      = _int(tanktype.get("data"))
+        mineral_pct  = None
+        if mineral_ml is not None and tank_ml:
+            mineral_pct = round(min(100.0, mineral_ml / tank_ml * 100), 1)
+
+        # Error state -> human readable (i-dos warning codes)
+        err = _int(errstate.get("data"))
+        error_text = _ERROR_STATES.get(err, f"Code {err}") if err is not None else None
+
+        # Binary-ish state values: 0 = ok, anything else = problem
+        def _ok_state(raw, ok="OK", problem="Warnung") -> str | None:
+            v = _int(raw)
+            if v is None:
+                return None
+            return ok if v == 0 else f"{problem} ({v})"
+
         return {
             # m³ values
             "water_total":      round(total_l / 1000, 3) if total_l is not None else None,
@@ -192,6 +232,17 @@ class MyJudoCoordinator(DataUpdateCoordinator):
             "salt_quantity":    _int(salt.get("data")),
             "actual_quantity":  _int(actual.get("data")),
             "natural_hardness": _int(hardness.get("data")),
+            # mineral solution (i-dos)
+            "mineral_level":      mineral_pct,                 # %
+            "mineral_remaining":  mineral_ml,                  # ml
+            "mineral_capacity":   tank_ml,                     # ml
+            "mineral_range":      _int(dil_range.get("data")), # remaining range
+            "mineral_type":       _str(dil_type.get("data")),  # e.g. "jul-c"
+            "dosing_setting":     _str(concentr.get("data")),  # e.g. "normal"
+            "error_state":        error_text,                  # "OK" / warning text
+            "mineral_expiry_state":  _ok_state(dil_expiry.get("data"), problem="MHD-Warnung"),
+            "mineral_quantity_state": _ok_state(dil_qstate.get("data"), problem="Menge niedrig"),
+            "ec_connection_state":   _ok_state(ec_conn.get("data"), problem="getrennt"),
             # device info / diagnostics
             "devcomm_version":  _str(devcomm.get("data")),
             "init_date":        init_date,
