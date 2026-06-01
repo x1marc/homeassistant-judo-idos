@@ -252,6 +252,7 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
         data_key="dosing_setting",
         name="Dosiermenge-Einstellung",
         icon="mdi:tune-variant",
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     MyJudoSensorDescription(
         key="error_state",

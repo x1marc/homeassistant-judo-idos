@@ -22,3 +22,7 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
+          # 'brands' is only required for inclusion in HACS default.
+          # As a custom repository the integration works without it.
+          # Submit a logo to home-assistant/brands to remove this ignore.
+          ignore: brands

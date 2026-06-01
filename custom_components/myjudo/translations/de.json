@@ -29,5 +29,16 @@
         }
       }
     }
+  },
+  "entity": {
+    "select": {
+      "concentration": {
+        "state": {
+          "minimal": "Minimal",
+          "normal": "Normal",
+          "maximal": "Maximal"
+        }
+      }
+    }
   }
 }

@@ -63,10 +63,8 @@ class MyJudoCoordinator(DataUpdateCoordinator):
         self._password = password
         self._serial = serial
 
-    async def _async_update_data(self) -> dict:
-        now = datetime.now()
-
-        # --- Login ---
+    async def _login_and_connect(self) -> str:
+        """Login + connect, returns a valid token. Raises UpdateFailed on error."""
         login = await judo_get({
             "group": "register",
             "command": "login",
@@ -88,7 +86,6 @@ class MyJudoCoordinator(DataUpdateCoordinator):
         _LOGGER.debug("JUDO login ok")
         await asyncio.sleep(0.3)
 
-        # --- Connect to device ---
         conn = await judo_get({
             "token": token,
             "group": "register",
@@ -97,15 +94,31 @@ class MyJudoCoordinator(DataUpdateCoordinator):
             "serial number": self._serial,
         })
         if not conn:
-            raise UpdateFailed(
-                "JUDO server not responding on connect (timeout). "
-                "Will retry next interval."
-            )
+            raise UpdateFailed("JUDO server not responding on connect (timeout).")
         if conn.get("status") != "ok":
-            raise UpdateFailed(f"Connect rejected: {conn.get('data')} "
-                               "(check serial number / device online?)")
+            raise UpdateFailed(f"Connect rejected: {conn.get('data')}")
         _LOGGER.debug("JUDO connect ok")
         await asyncio.sleep(0.3)
+        return token
+
+    async def async_set_concentration(self, value: str) -> None:
+        """Set dosing concentration (minimal/normal/maximal), then refresh."""
+        token = await self._login_and_connect()
+        resp = await judo_get({
+            "token": token,
+            "group": "settings",
+            "command": "concentration adjustment",
+            "parameter": value,
+        })
+        if not resp or resp.get("status") != "ok":
+            raise UpdateFailed(f"Set concentration failed: {resp.get('data') if resp else 'no response'}")
+        _LOGGER.info("JUDO dosing concentration set to '%s'", value)
+        await self.async_request_refresh()
+
+    async def _async_update_data(self) -> dict:
+        now = datetime.now()
+
+        token = await self._login_and_connect()
 
         # --- Fetch sensors SEQUENTIALLY ---
         # The device relay can only handle one request at a time. Parallel
