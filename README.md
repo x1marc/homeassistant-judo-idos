@@ -178,6 +178,8 @@ JUDO-Log-Zeilen (`grep JUDO`) mit anhängen.
 
 ## Changelog
 
+- **1.8.1** – Eigenes Brand-Logo im `brand/`-Ordner (HA 2026.3+); HACS
+  brands-Check wieder aktiv
 - **1.8.0** – Dosiermengen-Steuerung per Select-Entität (minimal/normal/
   maximal); CI-Fixes (manifest-Sortierung, HACS brands-Check)
 - **1.7.1** – Status-Sensoren in die Diagnose-Kategorie verschoben
