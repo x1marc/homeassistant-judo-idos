@@ -17,8 +17,10 @@ Assistant einbindet.
 
 - 🔐 Einrichtung komplett über die HA-Oberfläche (Config Flow)
 - ⏱️ Einstellbares Abrufintervall (5–60 Minuten)
-- 📊 18 Sensoren: Wasserverbrauch (Tag/Woche/Monat/Jahr), Durchfluss,
-  Wasserhärte, Gerätealter, Wartungsdaten u. a.
+- 📊 28 Sensoren: Wasserverbrauch (Tag/Woche/Monat/Jahr), Durchfluss,
+  Wasserhärte, Minerallösung (Vorrat/Reichweite/Typ), Gerätestatus,
+  Wartungsdaten u. a.
+- 🎛️ Dosiermenge umschaltbar (minimal/normal/maximal) per Select-Entität
 - 🔄 Automatischer Login + Connect bei jedem Abruf (Token ist kurzlebig)
 - 🌐 DNS-Auflösung mit fester IP als Fallback (überlebt einen Server-Umzug)
 
@@ -46,6 +48,18 @@ Assistant einbindet.
 | Gerätealter | Jahre | Berechnet aus der Inbetriebnahme (Diagnose) |
 | Inbetriebnahme / Service-Datum | Datum | Wartungstermine (Diagnose) |
 | Modul-Firmware / Seriennummer | — | Diagnose |
+
+## Steuerung
+
+| Entität | Typ | Funktion |
+|---|---|---|
+| **Dosiermenge** | Select | Konzentration umschalten: `minimal` / `normal` / `maximal` |
+
+Die Select-Entität schreibt `concentration adjustment` ans Gerät. Der
+Diagnose-Sensor *„Dosiermenge-Einstellung"* zeigt den zurückgelesenen Wert —
+so lässt sich kontrollieren, ob das Umschalten am Gerät angekommen ist.
+
+> ⚠️ Dies ändert die **reale Trinkwasser-Dosierung** des i-dos.
 
 ---
 
@@ -164,6 +178,8 @@ JUDO-Log-Zeilen (`grep JUDO`) mit anhängen.
 
 ## Changelog
 
+- **1.8.0** – Dosiermengen-Steuerung per Select-Entität (minimal/normal/
+  maximal); CI-Fixes (manifest-Sortierung, HACS brands-Check)
 - **1.7.1** – Status-Sensoren in die Diagnose-Kategorie verschoben
 - **1.7.0** – Minerallösung Reichweite/Typ/MHD/Mengenstatus, Verbindungsstatus
   Steuerelektronik (entdeckt via ParameterController)
