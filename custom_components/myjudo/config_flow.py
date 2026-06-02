@@ -116,7 +116,9 @@ class MyJudoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
     ) -> MyJudoOptionsFlow:
-        return MyJudoOptionsFlow(config_entry)
+        # OptionsFlow gets `self.config_entry` from the base class automatically
+        # (HA 2024.11+); do not pass it into the constructor.
+        return MyJudoOptionsFlow()
 
 
 class MyJudoOptionsFlow(config_entries.OptionsFlow):

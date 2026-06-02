@@ -178,6 +178,8 @@ JUDO-Log-Zeilen (`grep JUDO`) mit anhängen.
 
 ## Changelog
 
+- **1.9.6** – Fix: Options-Dialog ließ sich nicht öffnen (500-Fehler) — OptionsFlow
+  wurde noch mit Argument erzeugt
 - **1.9.5** – Sensoren behalten ihren Wert über Reload/Neustart (`RestoreSensor`);
   Standard-Abrufintervall auf 30 Min
 - **1.9.4** – Fix: Abrufintervall im Options-Dialog wird korrekt gespeichert/
