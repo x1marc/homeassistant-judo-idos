@@ -224,9 +224,16 @@ class MyJudoCoordinator(DataUpdateCoordinator):
 
         # Live / status values
         wt       = await _get("consumption", "water total")
+
+        # Core-value check: if the very first data command times out (returns {}),
+        # the whole fetch is treated as a failure so the anti-flapping logic in
+        # _async_update_data keeps the last known values instead of flipping
+        # individual sensors to 'unavailable' (which would spam the logbook).
+        if wt.get("status") != "ok":
+            raise UpdateFailed("Core value 'water total' missing (server timeout)")
+
         wc       = await _get("consumption", "water current")
         wa       = await _get("consumption", "water average")
-        salt     = await _get("consumption", "salt quantity")
         actual   = await _get("consumption", "actual quantity")
         hardness = await _get("info", "natural hardness")
 
@@ -333,7 +340,6 @@ class MyJudoCoordinator(DataUpdateCoordinator):
             "water_today":      today_l,
             "water_week":       week_l,
             # other
-            "salt_quantity":    _int(salt.get("data")),
             "actual_quantity":  _int(actual.get("data")),
             "natural_hardness": _int(hardness.get("data")),
             # mineral solution (i-dos)

@@ -65,15 +65,6 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
         suggested_display_precision=0,
     ),
     MyJudoSensorDescription(
-        key="salt_quantity",
-        data_key="salt_quantity",
-        name="Salzmenge",
-        icon="mdi:grain",
-        native_unit_of_measurement=None,
-        state_class=SensorStateClass.MEASUREMENT,
-        suggested_display_precision=0,
-    ),
-    MyJudoSensorDescription(
         key="actual_quantity",
         data_key="actual_quantity",
         name="Dosiermenge aktuell",

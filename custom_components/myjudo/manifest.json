@@ -10,5 +10,5 @@
   "issue_tracker": "https://github.com/x1marc/homeassistant-judo-idos/issues",
   "loggers": ["custom_components.myjudo"],
   "requirements": [],
-  "version": "1.9.2"
+  "version": "1.9.3"
 }

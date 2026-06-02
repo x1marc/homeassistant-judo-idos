@@ -178,6 +178,8 @@ JUDO-Log-Zeilen (`grep JUDO`) mit anhängen.
 
 ## Changelog
 
+- **1.9.3** – Anti-Flapping auch bei partiellen Timeouts (Kernwert-Prüfung);
+  toten „Salzmenge"-Sensor entfernt
 - **1.9.2** – Anti-Flapping: kurzer Server-Timeout setzt Sensoren nicht mehr
   auf „unavailable" (kein Logbuch-Spam); ein Logbuch-Eintrag pro erfolgreichem
   Abruf
