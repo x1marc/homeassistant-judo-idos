@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from homeassistant.components import persistent_notification
 from homeassistant.core import HomeAssistant
@@ -74,6 +75,9 @@ class MyJudoCoordinator(DataUpdateCoordinator):
         self._error_notified = False
         # Cached entity_id for the single logbook entry (resolved lazily)
         self._logbook_entity_id: str | None = None
+        # Cache for static values (rarely change) — refreshed every 6 hours
+        self._static_cache: dict[str, Any] = {}
+        self._static_cache_time: datetime | None = None
 
     def _resolve_logbook_entity(self) -> str | None:
         """Find one real entity_id of this device for the logbook entry (cached)."""
@@ -86,6 +90,40 @@ class MyJudoCoordinator(DataUpdateCoordinator):
                 self._logbook_entity_id = entity.entity_id
                 return self._logbook_entity_id
         return None
+
+    async def _get_static_values(self, getter) -> dict[str, dict]:
+        """Fetch rarely-changing values, but only once every 24 hours (cached).
+
+        `getter` is the local `_get` coroutine from _fetch_data. On a cache miss
+        we fetch all 5 static commands; otherwise we return the cached results
+        without hitting the server — making each regular poll a bit faster.
+        """
+        now = datetime.now(timezone.utc)
+        cache_age = (
+            (now - self._static_cache_time).total_seconds()
+            if self._static_cache_time is not None
+            else None
+        )
+        if self._static_cache and cache_age is not None and cache_age < 24 * 3600:
+            return self._static_cache
+
+        result = {
+            "devcomm":    await getter("version", "devcomm version"),
+            "init_dt":    await getter("contract", "init date"),
+            "service_dt": await getter("contract", "service date"),
+            "dil_type":   await getter("info", "rfid dilution type"),
+            "tanktype":   await getter("info", "rfid tank type"),
+        }
+        # Only cache a fully successful set (every command answered ok),
+        # otherwise keep the old cache / retry next poll.
+        if all(r.get("status") == "ok" for r in result.values()):
+            self._static_cache = result
+            self._static_cache_time = now
+            _LOGGER.debug("JUDO static values refreshed")
+        elif self._static_cache:
+            _LOGGER.debug("JUDO static refresh incomplete, keeping cache")
+            return self._static_cache
+        return result
 
     async def _login_and_connect(self) -> str:
         """Login + connect, returns a valid token. Raises UpdateFailed on error."""
@@ -246,21 +284,25 @@ class MyJudoCoordinator(DataUpdateCoordinator):
                              year=now.year, month=now.month)
         yearly  = await _get("consumption", "water yearly", year=now.year)
 
-        # Mineral solution (i-dos specific)
+        # Mineral solution (i-dos specific) — dynamic values
         dilution   = await _get("info", "dilution quantity")      # remaining ml
-        tanktype   = await _get("info", "rfid tank type")         # tank capacity ml
         concentr   = await _get("settings", "concentration adjustment")  # e.g. "normal"
         errstate   = await _get("state", "error state")           # 0 = ok
         dil_range  = await _get("consumption", "dilution range")  # remaining range
-        dil_type   = await _get("info", "rfid dilution type")     # e.g. "jul-c"
         dil_expiry = await _get("state", "dilution expiry state") # 0 = ok
         dil_qstate = await _get("state", "dilution quantity state")  # 0 = ok
         ec_conn    = await _get("state", "electrical control connection state")  # 0 = ok
+        # Note: rfid dilution type + rfid tank type are fetched via the static
+        # cache (_get_static_values) — they only change on cartridge swap.
 
-        # Static device info (rarely changes, but cheap to fetch)
-        devcomm    = await _get("version", "devcomm version")
-        init_dt    = await _get("contract", "init date")
-        service_dt = await _get("contract", "service date")
+        # Static device info — these values almost never change, so we only
+        # refresh them once a day instead of on every poll (saves ~5 calls).
+        static = await self._get_static_values(_get)
+        devcomm    = static["devcomm"]
+        init_dt    = static["init_dt"]
+        service_dt = static["service_dt"]
+        dil_type   = static["dil_type"]
+        tanktype   = static["tanktype"]
 
         def _m3(raw) -> float | None:
             try:

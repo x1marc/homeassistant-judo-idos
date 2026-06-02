@@ -1,0 +1,57 @@
+# ─────────────────────────────────────────────────────────────────────────
+# JUDO i-dos — Minerallösung-Warnung
+#
+# Schickt eine Benachrichtigung, sobald der binary_sensor "Minerallösung
+# Warnung" auslöst (Vorrat < 10 %, Gerätestatus ≠ OK, MHD/Menge-Warnung).
+# Eine zweite Automation meldet, wenn wieder alles OK ist.
+#
+# EINBAU:
+#   Einstellungen → Automationen & Szenen → "+ Automation" → ⋮ → "In YAML
+#   bearbeiten" → diesen Block einfügen.
+#
+# ENTITÄT prüfen (Name kann bei dir abweichen):
+#   binary_sensor.judo_i_dos_minerallosung_warnung
+#   → Einstellungen → Geräte → JUDO i-dos → "Minerallösung Warnung"
+#
+# Für Handy-Push: notify.persistent_notification durch deinen Dienst ersetzen,
+#   z. B. notify.mobile_app_DEIN_HANDY.
+# ─────────────────────────────────────────────────────────────────────────
+
+- alias: JUDO i-dos Minerallösung-Warnung
+  description: Meldet, wenn die Minerallösung knapp wird oder ein Fehler vorliegt.
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.judo_i_dos_minerallosung_warnung
+      to: "on"
+      for:
+        minutes: 1   # entprellen: erst melden, wenn 1 Min stabil "on"
+  action:
+    - service: persistent_notification.create
+      data:
+        title: "💧 JUDO i-dos – Achtung"
+        notification_id: judo_mineral_warning
+        message: >
+          Minerallösung prüfen!
+          {% set lvl = state_attr('binary_sensor.judo_i_dos_minerallosung_warnung', 'mineral_level') %}
+          {% set err = state_attr('binary_sensor.judo_i_dos_minerallosung_warnung', 'error_state') %}
+          Vorrat: {{ lvl if lvl is not none else '?' }} % · Status: {{ err if err else '?' }}
+    # Optional Handy-Push — Dienstnamen anpassen und Kommentar entfernen:
+    # - service: notify.mobile_app_DEIN_HANDY
+    #   data:
+    #     title: "JUDO i-dos – Achtung"
+    #     message: "Minerallösung prüfen (Vorrat niedrig oder Störung)."
+
+- alias: JUDO i-dos Minerallösung wieder OK
+  description: Löscht die Warn-Notiz, sobald wieder alles in Ordnung ist.
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.judo_i_dos_minerallosung_warnung
+      to: "off"
+      for:
+        minutes: 1
+  action:
+    - service: persistent_notification.dismiss
+      data:
+        notification_id: judo_mineral_warning

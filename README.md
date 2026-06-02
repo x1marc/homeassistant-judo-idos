@@ -61,6 +61,15 @@ so lässt sich kontrollieren, ob das Umschalten am Gerät angekommen ist.
 
 > ⚠️ Dies ändert die **reale Trinkwasser-Dosierung** des i-dos.
 
+## Warnung
+
+| Entität | Typ | Auslöser |
+|---|---|---|
+| **Minerallösung Warnung** | binary_sensor (problem) | Vorrat < 10 %, Gerätestatus ≠ OK oder MHD-/Mengen-Warnung |
+
+Eine fertige Benachrichtigungs-Automation liegt unter
+[`examples/automation_mineral_warning.yaml`](examples/automation_mineral_warning.yaml).
+
 ---
 
 ## Installation
@@ -178,6 +187,8 @@ JUDO-Log-Zeilen (`grep JUDO`) mit anhängen.
 
 ## Changelog
 
+- **1.10.0** – Minerallösung-Warnung (binary_sensor) + Beispiel-Automation;
+  statische Werte werden nur noch 1×/Tag abgerufen (schnellere Polls)
 - **1.9.6** – Fix: Options-Dialog ließ sich nicht öffnen (500-Fehler) — OptionsFlow
   wurde noch mit Argument erzeugt
 - **1.9.5** – Sensoren behalten ihren Wert über Reload/Neustart (`RestoreSensor`);
