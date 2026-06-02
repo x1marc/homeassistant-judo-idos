@@ -16,9 +16,11 @@ PLATFORMS = [Platform.SENSOR, Platform.SELECT]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    scan_interval = entry.data.get("scan_interval", DEFAULT_SCAN_INTERVAL)
-    if entry.options.get("scan_interval"):
-        scan_interval = entry.options["scan_interval"]
+    # Options take precedence over the original setup value in data.
+    scan_interval = entry.options.get(
+        "scan_interval",
+        entry.data.get("scan_interval", DEFAULT_SCAN_INTERVAL),
+    )
 
     coordinator = MyJudoCoordinator(
         hass,

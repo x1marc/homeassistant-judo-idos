@@ -14,4 +14,4 @@ API_TIMEOUT = 20           # seconds to wait for the HTTP response (read)
 
 CONF_SERIAL = "serial_number"
 
-DEFAULT_SCAN_INTERVAL = 15  # minutes
+DEFAULT_SCAN_INTERVAL = 30  # minutes

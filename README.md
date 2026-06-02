@@ -178,6 +178,10 @@ JUDO-Log-Zeilen (`grep JUDO`) mit anhängen.
 
 ## Changelog
 
+- **1.9.5** – Sensoren behalten ihren Wert über Reload/Neustart (`RestoreSensor`);
+  Standard-Abrufintervall auf 30 Min
+- **1.9.4** – Fix: Abrufintervall im Options-Dialog wird korrekt gespeichert/
+  angezeigt; veralteten OptionsFlow-`__init__` entfernt
 - **1.9.3** – Anti-Flapping auch bei partiellen Timeouts (Kernwert-Prüfung);
   toten „Salzmenge"-Sensor entfernt
 - **1.9.2** – Anti-Flapping: kurzer Server-Timeout setzt Sensoren nicht mehr

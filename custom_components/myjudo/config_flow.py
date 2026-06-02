@@ -120,8 +120,9 @@ class MyJudoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 class MyJudoOptionsFlow(config_entries.OptionsFlow):
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self._config_entry = config_entry
+    # Note: do NOT define __init__ and store config_entry yourself — since
+    # HA 2024.11 `self.config_entry` is provided automatically by the base
+    # class. Storing it manually is deprecated/removed in newer versions.
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -129,7 +130,12 @@ class MyJudoOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        current = self._config_entry.data.get("scan_interval", DEFAULT_SCAN_INTERVAL)
+        # Show the value that is actually in effect: options take precedence,
+        # falling back to the original setup value in data.
+        current = self.config_entry.options.get(
+            "scan_interval",
+            self.config_entry.data.get("scan_interval", DEFAULT_SCAN_INTERVAL),
+        )
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema({

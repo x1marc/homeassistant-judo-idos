@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from homeassistant.components.sensor import (
+    RestoreSensor,
     SensorDeviceClass,
-    SensorEntity,
     SensorEntityDescription,
     SensorStateClass,
 )
@@ -276,7 +276,7 @@ async def async_setup_entry(
     )
 
 
-class MyJudoSensor(CoordinatorEntity[MyJudoCoordinator], SensorEntity):
+class MyJudoSensor(CoordinatorEntity[MyJudoCoordinator], RestoreSensor):
     entity_description: MyJudoSensorDescription
     _attr_has_entity_name = True
 
@@ -296,9 +296,23 @@ class MyJudoSensor(CoordinatorEntity[MyJudoCoordinator], SensorEntity):
             model="i-dos",
             serial_number=serial,
         )
+        # Holds the value restored from before a restart/reload, used until
+        # the coordinator delivers fresh data.
+        self._restored_value: Any = None
+
+    async def async_added_to_hass(self) -> None:
+        """Restore the last known value so there is no gap after a reload."""
+        await super().async_added_to_hass()
+        last = await self.async_get_last_sensor_data()
+        if last is not None:
+            self._restored_value = last.native_value
 
     @property
     def native_value(self) -> Any:
-        if self.coordinator.data is None:
-            return None
-        return self.coordinator.data.get(self.entity_description.data_key)
+        # Prefer fresh coordinator data; fall back to the restored value while
+        # the first post-reload fetch is still running.
+        if self.coordinator.data is not None:
+            value = self.coordinator.data.get(self.entity_description.data_key)
+            if value is not None:
+                return value
+        return self._restored_value
