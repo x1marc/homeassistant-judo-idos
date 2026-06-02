@@ -6,7 +6,6 @@ from datetime import datetime, timedelta, timezone
 
 from homeassistant.components import persistent_notification
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import judo_get
@@ -72,20 +71,6 @@ class MyJudoCoordinator(DataUpdateCoordinator):
         # Track consecutive failures for notification handling
         self._consecutive_failures = 0
         self._error_notified = False
-        # Cached entity_id for logbook entries (resolved lazily)
-        self._logbook_entity_id: str | None = None
-
-    def _resolve_logbook_entity(self) -> str | None:
-        """Find a real entity_id of this device for logbook entries (cached)."""
-        if self._logbook_entity_id:
-            return self._logbook_entity_id
-        registry = er.async_get(self.hass)
-        prefix = f"myjudo_{self._serial}_"
-        for entity in registry.entities.values():
-            if entity.platform == DOMAIN and entity.unique_id.startswith(prefix):
-                self._logbook_entity_id = entity.entity_id
-                return self._logbook_entity_id
-        return None
 
     async def _login_and_connect(self) -> str:
         """Login + connect, returns a valid token. Raises UpdateFailed on error."""
@@ -176,19 +161,6 @@ class MyJudoCoordinator(DataUpdateCoordinator):
                 notification_id=_NOTIF_ID_OK,
             )
         self._consecutive_failures = 0
-
-        # Log successful fetch into the integration's logbook/activity
-        entity_id = self._resolve_logbook_entity()
-        if entity_id:
-            self.hass.bus.async_fire(
-                "logbook_entry",
-                {
-                    "name": "JUDO i-dos",
-                    "message": "Daten erfolgreich abgerufen",
-                    "entity_id": entity_id,
-                    "domain": DOMAIN,
-                },
-            )
         return data
 
     async def _fetch_data(self) -> dict:
