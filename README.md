@@ -178,8 +178,9 @@ JUDO-Log-Zeilen (`grep JUDO`) mit anhängen.
 
 ## Changelog
 
+- **1.9.1** – Logbuch-Eintrag pro Abruf entfernt (zu viele Einträge)
 - **1.9.0** – Ausfall-Benachrichtigung (persistente Notiz nach 3 Fehlern,
-  Auflösung bei Erholung); Logbuch-Eintrag bei jedem erfolgreichen Abruf
+  Auflösung bei Erholung)
 - **1.8.2** – Fix Brand-Validierung (doppeltes logo.png entfernt)
 - **1.8.1** – Eigenes Brand-Logo im `brand/`-Ordner (HA 2026.3+); HACS
   brands-Check wieder aktiv
