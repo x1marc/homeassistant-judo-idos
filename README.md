@@ -178,6 +178,9 @@ JUDO-Log-Zeilen (`grep JUDO`) mit anhängen.
 
 ## Changelog
 
+- **1.9.2** – Anti-Flapping: kurzer Server-Timeout setzt Sensoren nicht mehr
+  auf „unavailable" (kein Logbuch-Spam); ein Logbuch-Eintrag pro erfolgreichem
+  Abruf
 - **1.9.1** – Logbuch-Eintrag pro Abruf entfernt (zu viele Einträge)
 - **1.9.0** – Ausfall-Benachrichtigung (persistente Notiz nach 3 Fehlern,
   Auflösung bei Erholung)

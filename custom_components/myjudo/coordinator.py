@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 from homeassistant.components import persistent_notification
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import judo_get
@@ -68,9 +69,23 @@ class MyJudoCoordinator(DataUpdateCoordinator):
         self._username = username
         self._password = password
         self._serial = serial
-        # Track consecutive failures for notification handling
+        # Track consecutive failures for notification + anti-flapping handling
         self._consecutive_failures = 0
         self._error_notified = False
+        # Cached entity_id for the single logbook entry (resolved lazily)
+        self._logbook_entity_id: str | None = None
+
+    def _resolve_logbook_entity(self) -> str | None:
+        """Find one real entity_id of this device for the logbook entry (cached)."""
+        if self._logbook_entity_id:
+            return self._logbook_entity_id
+        registry = er.async_get(self.hass)
+        prefix = f"myjudo_{self._serial}_"
+        for entity in registry.entities.values():
+            if entity.platform == DOMAIN and entity.unique_id.startswith(prefix):
+                self._logbook_entity_id = entity.entity_id
+                return self._logbook_entity_id
+        return None
 
     async def _login_and_connect(self) -> str:
         """Login + connect, returns a valid token. Raises UpdateFailed on error."""
@@ -124,8 +139,22 @@ class MyJudoCoordinator(DataUpdateCoordinator):
         _LOGGER.info("JUDO dosing concentration set to '%s'", value)
         await self.async_request_refresh()
 
+    def _log_activity(self, message: str) -> None:
+        """Write a single entry into the device's logbook."""
+        entity_id = self._resolve_logbook_entity()
+        if entity_id:
+            self.hass.bus.async_fire(
+                "logbook_entry",
+                {
+                    "name": "JUDO i-dos",
+                    "message": message,
+                    "entity_id": entity_id,
+                    "domain": DOMAIN,
+                },
+            )
+
     async def _async_update_data(self) -> dict:
-        """Wraps the actual fetch with failure-counting + notification handling."""
+        """Fetch wrapper with anti-flapping, notification + single logbook entry."""
         try:
             data = await self._fetch_data()
         except UpdateFailed as err:
@@ -134,9 +163,18 @@ class MyJudoCoordinator(DataUpdateCoordinator):
                 "JUDO update failed (%d in a row): %s",
                 self._consecutive_failures, err,
             )
+
+            # --- Anti-flapping: below the threshold, keep the last known values ---
+            # so a single short server timeout does NOT flip all sensors to
+            # 'unavailable' (which would spam the logbook). We only surface the
+            # failure (raise) once we hit the threshold.
+            if self._consecutive_failures < _FAIL_THRESHOLD and self.data is not None:
+                _LOGGER.debug("JUDO keeping last known values (anti-flapping)")
+                return self.data
+
+            # Threshold reached: notify once, then let it become unavailable.
             if self._consecutive_failures >= _FAIL_THRESHOLD and not self._error_notified:
                 self._error_notified = True
-                # Clear any "restored" note, raise the error note
                 persistent_notification.async_dismiss(self.hass, _NOTIF_ID_OK)
                 persistent_notification.async_create(
                     self.hass,
@@ -150,8 +188,9 @@ class MyJudoCoordinator(DataUpdateCoordinator):
                 )
             raise
 
-        # Success: if we were in an error state, clear it and notify recovery
+        # --- Success ---
         if self._error_notified:
+            # We were in a real outage: clear error note + post recovery note.
             self._error_notified = False
             persistent_notification.async_dismiss(self.hass, _NOTIF_ID_ERROR)
             persistent_notification.async_create(
@@ -160,7 +199,11 @@ class MyJudoCoordinator(DataUpdateCoordinator):
                 message="Der Datenabruf funktioniert wieder. Alle Werte sind aktuell.",
                 notification_id=_NOTIF_ID_OK,
             )
+
         self._consecutive_failures = 0
+
+        # One logbook entry per successful fetch.
+        self._log_activity("Daten erfolgreich abgerufen")
         return data
 
     async def _fetch_data(self) -> dict:
