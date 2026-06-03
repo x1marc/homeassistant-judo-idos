@@ -259,6 +259,14 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
         icon="mdi:barcode",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
+    MyJudoSensorDescription(
+        key="last_fetch",
+        data_key="last_fetch",
+        name="Letzter Abruf",
+        icon="mdi:cloud-check-variant",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
 )
 
 

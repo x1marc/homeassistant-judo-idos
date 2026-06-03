@@ -187,6 +187,11 @@ JUDO-Log-Zeilen (`grep JUDO`) mit anhängen.
 
 ## Changelog
 
+- **1.11.0** – Keep-Alive (1 TLS-Verbindung pro Poll statt ~23 → weniger
+  Handshakes/DNS, kein Log-Spam, mit Reconnect); neuer Sensor „Letzter Abruf";
+  deutlich detaillierteres Debug-Log (pro Befehl Wert + Einheit + Dauer)
+- **1.10.4** – Sensor „Letzter Abruf" + Logbuch-Custom-Call entfernt
+- **1.10.3** – (durch 1.10.4 ersetzt)
 - **1.10.2** – Fix: RestoreSensor war wirkungslos (geerbte `available` zeigte
   Sensoren nach Reload trotz Wert als unavailable) → jetzt wirklich keine
   Lücke; binary_sensor restore-fähig; Dosier-Umschalten wirft

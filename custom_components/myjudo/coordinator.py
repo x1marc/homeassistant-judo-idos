@@ -8,10 +8,9 @@ from typing import Any
 from homeassistant.components import persistent_notification
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import judo_get
+from .api import JudoSession
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -74,23 +73,9 @@ class MyJudoCoordinator(DataUpdateCoordinator):
         # Track consecutive failures for notification + anti-flapping handling
         self._consecutive_failures = 0
         self._error_notified = False
-        # Cached entity_id for the single logbook entry (resolved lazily)
-        self._logbook_entity_id: str | None = None
         # Cache for static values (rarely change) — refreshed once per 24 h
         self._static_cache: dict[str, Any] = {}
         self._static_cache_time: datetime | None = None
-
-    def _resolve_logbook_entity(self) -> str | None:
-        """Find one real entity_id of this device for the logbook entry (cached)."""
-        if self._logbook_entity_id:
-            return self._logbook_entity_id
-        registry = er.async_get(self.hass)
-        prefix = f"myjudo_{self._serial}_"
-        for entity in registry.entities.values():
-            if entity.platform == DOMAIN and entity.unique_id.startswith(prefix):
-                self._logbook_entity_id = entity.entity_id
-                return self._logbook_entity_id
-        return None
 
     async def _get_static_values(self, getter) -> dict[str, dict]:
         """Fetch rarely-changing values, but only once every 24 hours (cached).
@@ -134,9 +119,9 @@ class MyJudoCoordinator(DataUpdateCoordinator):
         # whole poll as failed so anti-flapping keeps the restored values.
         raise UpdateFailed("Static values incomplete on first fetch (server timeout)")
 
-    async def _login_and_connect(self) -> str:
-        """Login + connect, returns a valid token. Raises UpdateFailed on error."""
-        login = await judo_get({
+    async def _login_and_connect(self, session: JudoSession) -> str:
+        """Login + connect over a keep-alive session. Returns a valid token."""
+        login = await session.get({
             "group": "register",
             "command": "login",
             "msgnumber": "1",
@@ -157,7 +142,7 @@ class MyJudoCoordinator(DataUpdateCoordinator):
         _LOGGER.debug("JUDO login ok")
         await asyncio.sleep(0.3)
 
-        conn = await judo_get({
+        conn = await session.get({
             "token": token,
             "group": "register",
             "command": "connect",
@@ -178,17 +163,20 @@ class MyJudoCoordinator(DataUpdateCoordinator):
         Raises HomeAssistantError (not UpdateFailed) because this is triggered
         by a user action on the select entity, not by the polling cycle.
         """
+        session = JudoSession()
         try:
-            token = await self._login_and_connect()
+            token = await self._login_and_connect(session)
+            resp = await session.get({
+                "token": token,
+                "group": "settings",
+                "command": "concentration adjustment",
+                "parameter": value,
+            })
         except UpdateFailed as err:
             raise HomeAssistantError(f"JUDO nicht erreichbar: {err}") from err
+        finally:
+            await session.aclose()
 
-        resp = await judo_get({
-            "token": token,
-            "group": "settings",
-            "command": "concentration adjustment",
-            "parameter": value,
-        })
         if not resp or resp.get("status") != "ok":
             detail = resp.get("data") if resp else "keine Antwort vom Server"
             raise HomeAssistantError(f"Dosiermenge konnte nicht gesetzt werden: {detail}")
@@ -196,22 +184,8 @@ class MyJudoCoordinator(DataUpdateCoordinator):
         _LOGGER.info("JUDO dosing concentration set to '%s'", value)
         await self.async_request_refresh()
 
-    def _log_activity(self, message: str) -> None:
-        """Write a single entry into the device's logbook."""
-        entity_id = self._resolve_logbook_entity()
-        if entity_id:
-            self.hass.bus.async_fire(
-                "logbook_entry",
-                {
-                    "name": "JUDO i-dos",
-                    "message": message,
-                    "entity_id": entity_id,
-                    "domain": DOMAIN,
-                },
-            )
-
     async def _async_update_data(self) -> dict:
-        """Fetch wrapper with anti-flapping, notification + single logbook entry."""
+        """Fetch wrapper with anti-flapping + outage notification."""
         try:
             data = await self._fetch_data()
         except UpdateFailed as err:
@@ -259,23 +233,50 @@ class MyJudoCoordinator(DataUpdateCoordinator):
 
         self._consecutive_failures = 0
 
-        # One logbook entry per successful fetch.
-        self._log_activity("Daten erfolgreich abgerufen")
+        # Stamp the successful-fetch time. The 'last_fetch' sensor exposes this
+        # as a timestamp; since it changes every poll, HA's logbook shows a
+        # "Letzter Abruf geändert zu HH:MM" entry automatically — no fragile
+        # custom logbook call needed.
+        data["last_fetch"] = datetime.now(timezone.utc)
         return data
 
     async def _fetch_data(self) -> dict:
+        """Open one keep-alive session for the whole poll, then close it."""
+        session = JudoSession()
+        poll_start = datetime.now()
+        _LOGGER.debug("JUDO ┌─── Poll-Start  %s ───────────────────────", poll_start.strftime("%H:%M:%S"))
+        try:
+            data = await self._fetch_over_session(session)
+            _LOGGER.debug(
+                "JUDO └─── Poll fertig ✅  %d/%d ok · %d Verbindung · %d reconnect · %.1fs",
+                session.ok_count, session.req_count,
+                session.handshakes, session.reconnects,
+                (datetime.now() - poll_start).total_seconds(),
+            )
+            return data
+        except UpdateFailed:
+            _LOGGER.debug(
+                "JUDO └─── Poll ABGEBROCHEN ⚠️  %d/%d Werte · %.1fs",
+                session.ok_count, session.req_count,
+                (datetime.now() - poll_start).total_seconds(),
+            )
+            raise
+        finally:
+            await session.aclose()
+
+    async def _fetch_over_session(self, session: JudoSession) -> dict:
         now = datetime.now()
 
-        token = await self._login_and_connect()
+        token = await self._login_and_connect(session)
 
-        # --- Fetch sensors SEQUENTIALLY ---
-        # The device relay can only handle one request at a time. Parallel
-        # requests (asyncio.gather) overload it and all time out. A small
-        # delay between calls keeps the relay stable.
+        # --- Fetch sensors SEQUENTIALLY over the SAME connection ---
+        # The device relay only handles one request at a time, so we stay
+        # sequential. Reusing the socket (keep-alive) avoids ~22 TLS handshakes
+        # and DNS lookups per poll. A small delay keeps the relay stable.
         async def _get(group: str, command: str, **extra) -> dict:
             params = {"token": token, "group": group, "command": command}
             params.update({k: str(v) for k, v in extra.items()})
-            result = await judo_get(params)
+            result = await session.get(params)
             await asyncio.sleep(0.3)
             return result
 

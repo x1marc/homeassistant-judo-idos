@@ -20,6 +20,7 @@ import json
 import logging
 import socket
 import ssl
+import time
 import urllib.parse
 
 from .const import API_CONNECT_TIMEOUT, API_HOST, API_IP, API_PORT, API_TIMEOUT
@@ -30,6 +31,23 @@ _UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
 )
+
+# Units per command — only for the debug log, so values read nicely
+# (e.g. "65 L/d" instead of just "65"). Commands not listed have no unit.
+_UNITS: dict[str, str] = {
+    "water total": "L",
+    "water current": "L/h",
+    "water average": "L/d",
+    "water daily": "L",
+    "water weekly": "L",
+    "water monthly": "L",
+    "water yearly": "L",
+    "actual quantity": "mL",
+    "dilution quantity": "mL",
+    "rfid tank type": "mL",
+    "natural hardness": "°dH",
+    "dilution range": "Tage",
+}
 
 
 def _make_ssl_ctx() -> ssl.SSLContext:
@@ -163,9 +181,142 @@ def _sync_request(params: dict) -> dict:
 
 
 async def judo_get(params: dict) -> dict:
-    """Async wrapper — runs the blocking request in a thread (non-blocking for HA)."""
+    """Async wrapper — runs the blocking request in a thread (non-blocking for HA).
+
+    One-shot: opens a fresh connection per call. Kept for the config flow.
+    For a full poll, prefer JudoSession (keep-alive) below.
+    """
     try:
         return await asyncio.to_thread(_sync_request, params)
     except Exception:
         # Detailed logging already done inside _sync_request.
         return {}
+
+
+# ---------------------------------------------------------------------------
+# Keep-alive session: reuse ONE TLS connection for an entire poll cycle.
+# The JUDO relay only handles one request at a time anyway (so we stay
+# sequential), but reusing the socket saves ~22 TLS handshakes + DNS lookups
+# per poll and removes the per-request "DNS resolved" log spam.
+# ---------------------------------------------------------------------------
+class JudoSession:
+    """Holds one open SSL connection and sends requests over it sequentially."""
+
+    def __init__(self) -> None:
+        self._ctx = _make_ssl_ctx()
+        self._sock: ssl.SSLSocket | None = None
+        self._used_ip: str | None = None
+        # Per-poll statistics (for the debug summary)
+        self.req_count = 0
+        self.ok_count = 0
+        self.reconnects = 0
+        self.handshakes = 0
+
+    def _connect_sync(self) -> None:
+        """Open a TCP+SSL connection, trying DNS IPs then the fallback IP."""
+        last_exc: Exception | None = None
+        for ip in _candidate_ips():
+            try:
+                self._sock = _connect(ip, self._ctx)
+                self._used_ip = ip
+                self.handshakes += 1
+                _LOGGER.debug(
+                    "JUDO  🔗 verbunden mit %s · TLS %s",
+                    ip, self._sock.cipher()[0] if self._sock.cipher() else "?",
+                )
+                return
+            except Exception as exc:
+                last_exc = exc
+                _LOGGER.debug("JUDO  ❌ Verbindung zu %s fehlgeschlagen: %s", ip, type(exc).__name__)
+        raise last_exc if last_exc else OSError("no candidate hosts")
+
+    def _request_sync(self, params: dict) -> dict:
+        """Send one request over the (kept-alive) socket; reconnect once on drop."""
+        cmd = params.get("command", "?")
+        group = params.get("group", "?")
+        idx = self.req_count + 1  # provisional; committed once a response arrives
+        t0 = time.monotonic()
+        for attempt in (1, 2):
+            if self._sock is None:
+                # A connect failure here propagates to session.get() -> {}.
+                # req_count is only incremented after a real HTTP response,
+                # so connect-only failures don't skew the stats.
+                self._connect_sync()
+            conn = http.client.HTTPSConnection(
+                API_HOST, API_PORT, context=self._ctx, timeout=API_TIMEOUT
+            )
+            conn.sock = self._sock
+            try:
+                query = urllib.parse.urlencode(params)
+                conn.request(
+                    "GET",
+                    "/?" + query,
+                    headers={
+                        "User-Agent": _UA,
+                        "Accept": "application/json",
+                        "Connection": "keep-alive",
+                    },
+                )
+                resp = conn.getresponse()
+                body = resp.read()
+                conn.sock = None  # detach so conn.close() does NOT close it
+                self.req_count += 1  # a real response arrived -> count it
+                dt = time.monotonic() - t0
+                if resp.status != 200:
+                    _LOGGER.warning("JUDO #%02d [%s/%s] HTTP %s (%.2fs)",
+                                    idx, group, cmd, resp.status, dt)
+                    return {}
+                data = json.loads(body.decode()) if body else {}
+                status = data.get("status", "?")
+                value = data.get("data", "")
+                if status == "ok":
+                    self.ok_count += 1
+                # Short value preview with unit (the device returns small values)
+                preview = str(value).strip()
+                if len(preview) > 30:
+                    preview = preview[:30] + "…"
+                unit = _UNITS.get(cmd, "")
+                shown = f"{preview} {unit}".strip() if preview else "(leer)"
+                _LOGGER.debug("JUDO  #%02d  %-13s %-26s →  %-12s  %5.2fs",
+                              idx, group, cmd, shown, dt)
+                return data
+            except (BrokenPipeError, ConnectionResetError, http.client.RemoteDisconnected,
+                    OSError) as exc:
+                conn.sock = None
+                self.close()
+                if attempt == 2:
+                    _LOGGER.warning("JUDO #%02d [%s/%s] Verbindung verloren: %s",
+                                    idx, group, cmd, type(exc).__name__)
+                    raise
+                self.reconnects += 1
+                _LOGGER.debug("JUDO #%02d [%s/%s] Socket abgebrochen (%s) – reconnect",
+                              idx, group, cmd, type(exc).__name__)
+            except (TimeoutError, socket.timeout):
+                conn.sock = None
+                _LOGGER.warning("JUDO #%02d [%s/%s] keine Antwort (Timeout nach %.0fs)",
+                                idx, group, cmd, time.monotonic() - t0)
+                raise
+            finally:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+        return {}
+
+    def close(self) -> None:
+        if self._sock is not None:
+            try:
+                self._sock.close()
+            except Exception:
+                pass
+            self._sock = None
+
+    async def get(self, params: dict) -> dict:
+        """Async wrapper for one keep-alive request."""
+        try:
+            return await asyncio.to_thread(self._request_sync, params)
+        except Exception:
+            return {}
+
+    async def aclose(self) -> None:
+        await asyncio.to_thread(self.close)
