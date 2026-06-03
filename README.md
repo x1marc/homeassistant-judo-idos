@@ -187,6 +187,11 @@ JUDO-Log-Zeilen (`grep JUDO`) mit anhängen.
 
 ## Changelog
 
+- **1.10.2** – Fix: RestoreSensor war wirkungslos (geerbte `available` zeigte
+  Sensoren nach Reload trotz Wert als unavailable) → jetzt wirklich keine
+  Lücke; binary_sensor restore-fähig; Dosier-Umschalten wirft
+  `HomeAssistantError` statt `UpdateFailed`
+- **1.10.1** – Fix: unvollständiger Static-Cache beim ersten Abruf nach Neustart
 - **1.10.0** – Minerallösung-Warnung (binary_sensor) + Beispiel-Automation;
   statische Werte werden nur noch 1×/Tag abgerufen (schnellere Polls)
 - **1.9.6** – Fix: Options-Dialog ließ sich nicht öffnen (500-Fehler) — OptionsFlow

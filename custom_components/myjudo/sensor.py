@@ -308,6 +308,17 @@ class MyJudoSensor(CoordinatorEntity[MyJudoCoordinator], RestoreSensor):
             self._restored_value = last.native_value
 
     @property
+    def available(self) -> bool:
+        # Stay available while we still have a restored value, even before the
+        # first successful coordinator update. Without this override the
+        # inherited CoordinatorEntity.available (= last_update_success) would
+        # mark the sensor 'unavailable' right after a reload despite the
+        # restored value being present.
+        if self.coordinator.last_update_success:
+            return True
+        return self._restored_value is not None
+
+    @property
     def native_value(self) -> Any:
         # Prefer fresh coordinator data; fall back to the restored value while
         # the first post-reload fetch is still running.

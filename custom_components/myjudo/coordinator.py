@@ -7,6 +7,7 @@ from typing import Any
 
 from homeassistant.components import persistent_notification
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -75,7 +76,7 @@ class MyJudoCoordinator(DataUpdateCoordinator):
         self._error_notified = False
         # Cached entity_id for the single logbook entry (resolved lazily)
         self._logbook_entity_id: str | None = None
-        # Cache for static values (rarely change) — refreshed every 6 hours
+        # Cache for static values (rarely change) — refreshed once per 24 h
         self._static_cache: dict[str, Any] = {}
         self._static_cache_time: datetime | None = None
 
@@ -114,16 +115,24 @@ class MyJudoCoordinator(DataUpdateCoordinator):
             "dil_type":   await getter("info", "rfid dilution type"),
             "tanktype":   await getter("info", "rfid tank type"),
         }
-        # Only cache a fully successful set (every command answered ok),
-        # otherwise keep the old cache / retry next poll.
+
         if all(r.get("status") == "ok" for r in result.values()):
+            # Complete set -> cache it.
             self._static_cache = result
             self._static_cache_time = now
             _LOGGER.debug("JUDO static values refreshed")
-        elif self._static_cache:
+            return result
+
+        # Incomplete refresh (a static command timed out):
+        if self._static_cache:
+            # We still have a previous good set -> keep using it.
             _LOGGER.debug("JUDO static refresh incomplete, keeping cache")
             return self._static_cache
-        return result
+
+        # No cache yet (first fetch after restart) AND incomplete -> do NOT
+        # return partial data (would make e.g. mineral_level None). Treat the
+        # whole poll as failed so anti-flapping keeps the restored values.
+        raise UpdateFailed("Static values incomplete on first fetch (server timeout)")
 
     async def _login_and_connect(self) -> str:
         """Login + connect, returns a valid token. Raises UpdateFailed on error."""
@@ -164,8 +173,16 @@ class MyJudoCoordinator(DataUpdateCoordinator):
         return token
 
     async def async_set_concentration(self, value: str) -> None:
-        """Set dosing concentration (minimal/normal/maximal), then refresh."""
-        token = await self._login_and_connect()
+        """Set dosing concentration (minimal/normal/maximal), then refresh.
+
+        Raises HomeAssistantError (not UpdateFailed) because this is triggered
+        by a user action on the select entity, not by the polling cycle.
+        """
+        try:
+            token = await self._login_and_connect()
+        except UpdateFailed as err:
+            raise HomeAssistantError(f"JUDO nicht erreichbar: {err}") from err
+
         resp = await judo_get({
             "token": token,
             "group": "settings",
@@ -173,7 +190,9 @@ class MyJudoCoordinator(DataUpdateCoordinator):
             "parameter": value,
         })
         if not resp or resp.get("status") != "ok":
-            raise UpdateFailed(f"Set concentration failed: {resp.get('data') if resp else 'no response'}")
+            detail = resp.get("data") if resp else "keine Antwort vom Server"
+            raise HomeAssistantError(f"Dosiermenge konnte nicht gesetzt werden: {detail}")
+
         _LOGGER.info("JUDO dosing concentration set to '%s'", value)
         await self.async_request_refresh()
 
