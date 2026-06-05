@@ -187,6 +187,8 @@ JUDO-Log-Zeilen (`grep JUDO`) mit anhängen.
 
 ## Changelog
 
+- **1.11.1** – `configuration_url` → klickbarer Link zum myjudo.eu-Portal auf
+  der Geräteseite
 - **1.11.0** – Keep-Alive (1 TLS-Verbindung pro Poll statt ~23 → weniger
   Handshakes/DNS, kein Log-Spam, mit Reconnect); neuer Sensor „Letzter Abruf";
   deutlich detaillierteres Debug-Log (pro Befehl Wert + Einheit + Dauer)

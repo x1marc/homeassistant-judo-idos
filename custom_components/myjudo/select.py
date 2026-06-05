@@ -39,6 +39,7 @@ class MyJudoConcentrationSelect(CoordinatorEntity[MyJudoCoordinator], SelectEnti
             manufacturer="JUDO",
             model="i-dos",
             serial_number=serial,
+            configuration_url="https://www.myjudo.eu",
         )
 
     @property

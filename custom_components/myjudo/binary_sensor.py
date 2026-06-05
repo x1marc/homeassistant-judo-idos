@@ -45,6 +45,7 @@ class MyJudoProblemBinarySensor(
             manufacturer="JUDO",
             model="i-dos",
             serial_number=serial,
+            configuration_url="https://www.myjudo.eu",
         )
         # Restored on/off state, used until the first fresh fetch after a reload.
         self._restored_is_on: bool | None = None

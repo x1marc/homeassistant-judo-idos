@@ -303,6 +303,7 @@ class MyJudoSensor(CoordinatorEntity[MyJudoCoordinator], RestoreSensor):
             manufacturer="JUDO",
             model="i-dos",
             serial_number=serial,
+            configuration_url="https://www.myjudo.eu",
         )
         # Holds the value restored from before a restart/reload, used until
         # the coordinator delivers fresh data.
