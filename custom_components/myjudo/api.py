@@ -51,10 +51,15 @@ _UNITS: dict[str, str] = {
 
 
 def _make_ssl_ctx() -> ssl.SSLContext:
-    """SSL context tuned for the old JUDO server (TLS 1.2, weak self-signed cert)."""
-    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
+    """SSL context for the JUDO cloud server.
+
+    The certificate IS validated (create_default_context checks the chain and
+    the hostname) — the JUDO server now presents a valid Let's Encrypt cert.
+    We only pin TLS 1.2 and lower the cipher security level to SECLEVEL=1,
+    because the old server still offers a cipher that OpenSSL 3.x rejects at
+    the default level. Neither of these weakens certificate verification.
+    """
+    ctx = ssl.create_default_context()
     try:
         ctx.minimum_version = ssl.TLSVersion.TLSv1_2
         ctx.maximum_version = ssl.TLSVersion.TLSv1_2

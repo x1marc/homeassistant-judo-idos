@@ -129,14 +129,15 @@ Daten    →  GET /?token=…&group=consumption&command=water total   (sequenzie
 
 ### Technische Besonderheiten
 
-Der JUDO-Server ist alt (TLS 1.2, selbstsigniertes Zertifikat). HA Core nutzt
-OpenSSL 3.x (strenger). Die Integration baut die HTTPS-Verbindung daher mit
-Pythons `ssl`/`http.client` selbst auf:
+Der JUDO-Server ist alt und nutzt nur TLS 1.2 mit einer schwachen Cipher. HA
+Core nutzt OpenSSL 3.x (strenger). Die Integration baut die HTTPS-Verbindung
+daher mit Pythons `ssl`/`http.client` selbst auf. Das Zertifikat wird dabei
+**voll geprüft** (gültiges Let's-Encrypt-Cert):
 
 | Problem | Ursache | Lösung |
 |---|---|---|
 | `SSLEOFError` beim Handshake | OpenSSL 3.x bietet TLS 1.3 an, Server bricht ab | TLS auf 1.2 pinnen |
-| Zertifikat abgelehnt | `SECLEVEL=2` zu streng für altes Cert | `SECLEVEL=1` + `CERT_NONE` |
+| Cipher abgelehnt | `SECLEVEL=2` zu streng für die alte Cipher | `SECLEVEL=1` (schwächt die Zertifikatsprüfung nicht) |
 | `Can't use SSL_get_servername` | rohe IP als SNI gesendet | Hostname als SNI, IP nur fürs TCP |
 | Alle Abrufe `TimeoutError` | parallele Anfragen | sequenziell + kleine Pause |
 
@@ -187,6 +188,11 @@ JUDO-Log-Zeilen (`grep JUDO`) mit anhängen.
 
 ## Changelog
 
+- **1.12.0** – **Sicherheit:** TLS-Zertifikatsprüfung aktiviert (der JUDO-Server
+  hat inzwischen ein gültiges Let's-Encrypt-Zertifikat) — vorher war die Prüfung
+  deaktiviert (`CERT_NONE`), wodurch die Zugangsdaten theoretisch MITM-angreifbar
+  waren. Es sind weiterhin nur TLS 1.2 + `SECLEVEL=1` nötig (beides schwächt die
+  Prüfung nicht). Passwortfeld im Setup-Dialog wird jetzt maskiert.
 - **1.11.1** – `configuration_url` → klickbarer Link zum myjudo.eu-Portal auf
   der Geräteseite
 - **1.11.0** – Keep-Alive (1 TLS-Verbindung pro Poll statt ~23 → weniger
