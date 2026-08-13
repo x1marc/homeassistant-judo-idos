@@ -3,6 +3,7 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 [![Validate](https://github.com/x1marc/homeassistant-judo-idos/actions/workflows/validate.yml/badge.svg)](https://github.com/x1marc/homeassistant-judo-idos/actions/workflows/validate.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-x1marc-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/x1marc)
 
 HACS-kompatible Custom Integration, die Verbrauchs- und Statusdaten eines
 **JUDO i-dos** Dosiergeräts über die JUDO-Cloud (OptiSoft-Relay) in Home
