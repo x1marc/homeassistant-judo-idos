@@ -50,15 +50,29 @@ _UNITS: dict[str, str] = {
 }
 
 
-def _make_ssl_ctx() -> ssl.SSLContext:
-    """SSL context for the JUDO cloud server.
+# Built once and cached — create_default_context() reads the system CA store
+# (blocking file I/O), so it must never run repeatedly on the event loop.
+# Callers below reach _get_ssl_ctx() only from within asyncio.to_thread(), so
+# the one-time build happens off the loop. We can't reuse HA's shared
+# get_default_context() here: this context is further restricted to TLS 1.2 +
+# SECLEVEL=1, and mutating the shared context would corrupt it for all of HA.
+_SSL_CTX: ssl.SSLContext | None = None
+
+
+def _get_ssl_ctx() -> ssl.SSLContext:
+    """Return the cached SSL context, building it once on first use.
 
     The certificate IS validated (create_default_context checks the chain and
     the hostname) — the JUDO server now presents a valid Let's Encrypt cert.
     We only pin TLS 1.2 and lower the cipher security level to SECLEVEL=1,
     because the old server still offers a cipher that OpenSSL 3.x rejects at
     the default level. Neither of these weakens certificate verification.
+
+    MUST be called off the event loop (it may read the system CA store).
     """
+    global _SSL_CTX
+    if _SSL_CTX is not None:
+        return _SSL_CTX
     ctx = ssl.create_default_context()
     try:
         ctx.minimum_version = ssl.TLSVersion.TLSv1_2
@@ -69,6 +83,7 @@ def _make_ssl_ctx() -> ssl.SSLContext:
         ctx.set_ciphers("DEFAULT@SECLEVEL=1")
     except ssl.SSLError:
         pass
+    _SSL_CTX = ctx
     return ctx
 
 
@@ -151,7 +166,7 @@ def _sync_request(params: dict) -> dict:
     device-relay response never causes a double timeout.
     """
     cmd = params.get("command", "?")
-    ctx = _make_ssl_ctx()
+    ctx = _get_ssl_ctx()  # off the loop here (called via asyncio.to_thread)
 
     ssl_sock: ssl.SSLSocket | None = None
     used_ip: str | None = None
@@ -208,7 +223,9 @@ class JudoSession:
     """Holds one open SSL connection and sends requests over it sequentially."""
 
     def __init__(self) -> None:
-        self._ctx = _make_ssl_ctx()
+        # Built lazily in _request_sync (which runs off the event loop), never
+        # here — __init__ is called on the loop by the coordinator.
+        self._ctx: ssl.SSLContext | None = None
         self._sock: ssl.SSLSocket | None = None
         self._used_ip: str | None = None
         # Per-poll statistics (for the debug summary)
@@ -241,6 +258,9 @@ class JudoSession:
         group = params.get("group", "?")
         idx = self.req_count + 1  # provisional; committed once a response arrives
         t0 = time.monotonic()
+        if self._ctx is None:
+            # First request of this session; we're off the loop here.
+            self._ctx = _get_ssl_ctx()
         for attempt in (1, 2):
             if self._sock is None:
                 # A connect failure here propagates to session.get() -> {}.

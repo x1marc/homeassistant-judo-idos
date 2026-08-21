@@ -45,7 +45,8 @@ async def _try_login(username: str, password: str, serial: str) -> str | None:
         "password": password,
         "role": "customer",
     })
-    _LOGGER.debug("JUDO login: %s", login)
+    # Do NOT log the full response — it carries the session token (see below).
+    _LOGGER.debug("JUDO login status: %s", login.get("status"))
 
     if not login:
         # Empty = no/invalid response from server (timeout, outage)
@@ -65,7 +66,7 @@ async def _try_login(username: str, password: str, serial: str) -> str | None:
         "parameter": "i-dos",
         "serial number": serial,
     })
-    _LOGGER.debug("JUDO connect: %s", conn)
+    _LOGGER.debug("JUDO connect status: %s", conn.get("status"))
 
     if not conn:
         _LOGGER.warning("JUDO server not responding during connect")

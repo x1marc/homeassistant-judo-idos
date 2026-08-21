@@ -193,6 +193,12 @@ JUDO-Log-Zeilen (`grep JUDO`) mit anhängen.
 
 ## Changelog
 
+- **1.12.1** – **Sicherheit:** Debug-Log gab beim Setup die komplette
+  Login-Antwort inkl. Session-`token` aus — jetzt nur noch der Status (keine
+  Tokens mehr in geteilten Log-Ausschnitten). SSL-Context wird nur noch einmal
+  und außerhalb des Event-Loops gebaut (kein CA-Store-Lesen auf dem Loop pro
+  Poll). `hacs.json`: `country: DE` ergänzt, HA-Mindestversion auf `2026.3.0`
+  angehoben (OptionsFlow braucht ≥ 2024.11, `brand/`-Ordner ≥ 2026.3).
 - **1.12.0** – **Sicherheit:** TLS-Zertifikatsprüfung aktiviert (der JUDO-Server
   hat inzwischen ein gültiges Let's-Encrypt-Zertifikat) — vorher war die Prüfung
   deaktiviert (`CERT_NONE`), wodurch die Zugangsdaten theoretisch MITM-angreifbar
