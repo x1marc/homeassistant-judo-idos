@@ -31,7 +31,7 @@ class MyJudoConcentrationSelect(CoordinatorEntity[MyJudoCoordinator], SelectEnti
 
     def __init__(self, coordinator: MyJudoCoordinator, serial: str) -> None:
         super().__init__(coordinator)
-        self._attr_name = "Dosiermenge"
+        # Name comes from the "concentration" translation_key (see translations).
         self._attr_unique_id = f"myjudo_{serial}_concentration_select"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, serial)},

@@ -46,7 +46,7 @@ _UNITS: dict[str, str] = {
     "dilution quantity": "mL",
     "rfid tank type": "mL",
     "natural hardness": "°dH",
-    "dilution range": "Tage",
+    "dilution range": "d",
 }
 
 

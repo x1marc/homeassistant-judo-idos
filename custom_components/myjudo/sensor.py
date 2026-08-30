@@ -10,7 +10,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import EntityCategory, UnitOfVolume
+from homeassistant.const import EntityCategory, UnitOfTime, UnitOfVolume
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -29,7 +29,7 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
     MyJudoSensorDescription(
         key="water_total",
         data_key="water_total",
-        name="Gesamtwassermenge",
+        translation_key="water_total",
         icon="mdi:water",
         native_unit_of_measurement=UnitOfVolume.CUBIC_METERS,
         device_class=SensorDeviceClass.WATER,
@@ -39,7 +39,7 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
     MyJudoSensorDescription(
         key="water_total_l",
         data_key="water_total_l",
-        name="Gesamtwassermenge (Liter)",
+        translation_key="water_total_l",
         icon="mdi:water",
         native_unit_of_measurement="L",
         device_class=SensorDeviceClass.WATER,
@@ -49,7 +49,7 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
     MyJudoSensorDescription(
         key="water_current",
         data_key="water_current",
-        name="Aktueller Wasserdurchfluss",
+        translation_key="water_current",
         icon="mdi:water-pump",
         native_unit_of_measurement="L/h",
         state_class=SensorStateClass.MEASUREMENT,
@@ -58,7 +58,7 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
     MyJudoSensorDescription(
         key="water_average",
         data_key="water_average",
-        name="Ø Wasserverbrauch täglich",
+        translation_key="water_average",
         icon="mdi:chart-line",
         native_unit_of_measurement="L/d",
         state_class=SensorStateClass.MEASUREMENT,
@@ -67,7 +67,7 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
     MyJudoSensorDescription(
         key="actual_quantity",
         data_key="actual_quantity",
-        name="Dosiermenge aktuell",
+        translation_key="actual_quantity",
         icon="mdi:beaker",
         native_unit_of_measurement=None,
         state_class=SensorStateClass.MEASUREMENT,
@@ -76,7 +76,7 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
     MyJudoSensorDescription(
         key="natural_hardness",
         data_key="natural_hardness",
-        name="Natürliche Wasserhärte",
+        translation_key="natural_hardness",
         icon="mdi:water-opacity",
         native_unit_of_measurement="°dH",
         state_class=SensorStateClass.MEASUREMENT,
@@ -85,7 +85,7 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
     MyJudoSensorDescription(
         key="water_today",
         data_key="water_today",
-        name="Verbrauch heute",
+        translation_key="water_today",
         icon="mdi:water-check",
         native_unit_of_measurement="L",
         device_class=SensorDeviceClass.WATER,
@@ -95,7 +95,7 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
     MyJudoSensorDescription(
         key="water_week",
         data_key="water_week",
-        name="Verbrauch Woche",
+        translation_key="water_week",
         icon="mdi:calendar-week",
         native_unit_of_measurement="L",
         device_class=SensorDeviceClass.WATER,
@@ -105,7 +105,7 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
     MyJudoSensorDescription(
         key="water_month",
         data_key="water_month",
-        name="Verbrauch Monat",
+        translation_key="water_month",
         icon="mdi:calendar-month",
         native_unit_of_measurement=UnitOfVolume.CUBIC_METERS,
         device_class=SensorDeviceClass.WATER,
@@ -115,7 +115,7 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
     MyJudoSensorDescription(
         key="water_month_l",
         data_key="water_month_l",
-        name="Verbrauch Monat (Liter)",
+        translation_key="water_month_l",
         icon="mdi:calendar-month",
         native_unit_of_measurement="L",
         device_class=SensorDeviceClass.WATER,
@@ -125,7 +125,7 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
     MyJudoSensorDescription(
         key="water_year",
         data_key="water_year",
-        name="Verbrauch Jahr",
+        translation_key="water_year",
         icon="mdi:calendar",
         native_unit_of_measurement=UnitOfVolume.CUBIC_METERS,
         device_class=SensorDeviceClass.WATER,
@@ -135,7 +135,7 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
     MyJudoSensorDescription(
         key="water_year_l",
         data_key="water_year_l",
-        name="Verbrauch Jahr (Liter)",
+        translation_key="water_year_l",
         icon="mdi:calendar",
         native_unit_of_measurement="L",
         device_class=SensorDeviceClass.WATER,
@@ -145,9 +145,9 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
     MyJudoSensorDescription(
         key="device_age",
         data_key="device_age",
-        name="Gerätealter",
+        translation_key="device_age",
         icon="mdi:clock-outline",
-        native_unit_of_measurement="Jahre",
+        native_unit_of_measurement=UnitOfTime.YEARS,
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=1,
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -155,7 +155,7 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
     MyJudoSensorDescription(
         key="init_date",
         data_key="init_date",
-        name="Inbetriebnahme",
+        translation_key="init_date",
         icon="mdi:calendar-start",
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -163,7 +163,7 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
     MyJudoSensorDescription(
         key="service_date",
         data_key="service_date",
-        name="Service-Datum",
+        translation_key="service_date",
         icon="mdi:calendar-clock",
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -171,14 +171,14 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
     MyJudoSensorDescription(
         key="devcomm_version",
         data_key="devcomm_version",
-        name="Modul-Firmware",
+        translation_key="devcomm_version",
         icon="mdi:chip",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     MyJudoSensorDescription(
         key="mineral_level",
         data_key="mineral_level",
-        name="Minerallösung Vorrat",
+        translation_key="mineral_level",
         icon="mdi:cup-water",
         native_unit_of_measurement="%",
         state_class=SensorStateClass.MEASUREMENT,
@@ -187,7 +187,7 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
     MyJudoSensorDescription(
         key="mineral_remaining",
         data_key="mineral_remaining",
-        name="Minerallösung Rest",
+        translation_key="mineral_remaining",
         icon="mdi:beaker-outline",
         native_unit_of_measurement="mL",
         state_class=SensorStateClass.MEASUREMENT,
@@ -196,7 +196,7 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
     MyJudoSensorDescription(
         key="mineral_capacity",
         data_key="mineral_capacity",
-        name="Minerallösung Behältergröße",
+        translation_key="mineral_capacity",
         icon="mdi:beaker",
         native_unit_of_measurement="mL",
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -205,7 +205,7 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
     MyJudoSensorDescription(
         key="mineral_range",
         data_key="mineral_range",
-        name="Minerallösung Reichweite",
+        translation_key="mineral_range",
         icon="mdi:calendar-range",
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=0,
@@ -213,56 +213,56 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
     MyJudoSensorDescription(
         key="mineral_type",
         data_key="mineral_type",
-        name="Minerallösung Typ",
+        translation_key="mineral_type",
         icon="mdi:flask-outline",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     MyJudoSensorDescription(
         key="mineral_expiry_state",
         data_key="mineral_expiry_state",
-        name="Minerallösung Haltbarkeit",
+        translation_key="mineral_expiry_state",
         icon="mdi:calendar-alert",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     MyJudoSensorDescription(
         key="mineral_quantity_state",
         data_key="mineral_quantity_state",
-        name="Minerallösung Mengenstatus",
+        translation_key="mineral_quantity_state",
         icon="mdi:gauge-low",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     MyJudoSensorDescription(
         key="ec_connection_state",
         data_key="ec_connection_state",
-        name="Verbindung Steuerelektronik",
+        translation_key="ec_connection_state",
         icon="mdi:connection",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     MyJudoSensorDescription(
         key="dosing_setting",
         data_key="dosing_setting",
-        name="Dosiermenge-Einstellung",
+        translation_key="dosing_setting",
         icon="mdi:tune-variant",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     MyJudoSensorDescription(
         key="error_state",
         data_key="error_state",
-        name="Gerätestatus",
+        translation_key="error_state",
         icon="mdi:alert-circle-outline",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     MyJudoSensorDescription(
         key="serial_number",
         data_key="serial_number",
-        name="Seriennummer",
+        translation_key="serial_number",
         icon="mdi:barcode",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     MyJudoSensorDescription(
         key="last_fetch",
         data_key="last_fetch",
-        name="Letzter Abruf",
+        translation_key="last_fetch",
         icon="mdi:cloud-check-variant",
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_category=EntityCategory.DIAGNOSTIC,

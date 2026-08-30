@@ -81,11 +81,12 @@ Eine fertige Benachrichtigungs-Automation liegt unter
 
 ### Über HACS (empfohlen)
 
-1. HACS → **Integrationen** → ⋮ → **Benutzerdefinierte Repositories**
-2. URL `https://github.com/x1marc/homeassistant-judo-idos` hinzufügen,
-   Kategorie **Integration**
-3. **JUDO i-dos** installieren
-4. Home Assistant neu starten
+> ✅ **Jetzt direkt in HACS verfügbar** – die Integration ist im
+> HACS-Standardkatalog. Kein „Benutzerdefiniertes Repository" mehr nötig.
+
+1. HACS öffnen und nach **„JUDO i-dos"** suchen
+2. **Herunterladen**
+3. Home Assistant neu starten
 
 [![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=x1marc&repository=homeassistant-judo-idos&category=integration)
 
@@ -193,6 +194,13 @@ JUDO-Log-Zeilen (`grep JUDO`) mit anhängen.
 
 ## Changelog
 
+- **1.13.0** – **Mehrsprachigkeit (DE/EN):** alle Entity-Namen (28 Sensoren,
+  Select, Binary-Sensor) laufen über `translation_key` + `strings.json`/
+  `translations/` statt hartkodiertem Deutsch — ein englisches HA zeigt jetzt
+  englische Namen (Review-Hinweis von @frenck). Die Ausfall-Meldung ist ein
+  übersetzbarer **Reparatur-Eintrag** (issue registry) statt einer
+  hartkodierten persistent_notification; Gerätealter nutzt `UnitOfTime.YEARS`
+  statt „Jahre".
 - **1.12.1** – **Sicherheit:** Debug-Log gab beim Setup die komplette
   Login-Antwort inkl. Session-`token` aus — jetzt nur noch der Status (keine
   Tokens mehr in geteilten Log-Ausschnitten). SSL-Context wird nur noch einmal

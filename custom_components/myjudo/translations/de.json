@@ -31,14 +31,54 @@
     }
   },
   "entity": {
+    "sensor": {
+      "water_total": { "name": "Gesamtwassermenge" },
+      "water_total_l": { "name": "Gesamtwassermenge (Liter)" },
+      "water_current": { "name": "Aktueller Wasserdurchfluss" },
+      "water_average": { "name": "Ø Wasserverbrauch täglich" },
+      "actual_quantity": { "name": "Dosiermenge aktuell" },
+      "natural_hardness": { "name": "Natürliche Wasserhärte" },
+      "water_today": { "name": "Verbrauch heute" },
+      "water_week": { "name": "Verbrauch Woche" },
+      "water_month": { "name": "Verbrauch Monat" },
+      "water_month_l": { "name": "Verbrauch Monat (Liter)" },
+      "water_year": { "name": "Verbrauch Jahr" },
+      "water_year_l": { "name": "Verbrauch Jahr (Liter)" },
+      "device_age": { "name": "Gerätealter" },
+      "init_date": { "name": "Inbetriebnahme" },
+      "service_date": { "name": "Service-Datum" },
+      "devcomm_version": { "name": "Modul-Firmware" },
+      "mineral_level": { "name": "Minerallösung Vorrat" },
+      "mineral_remaining": { "name": "Minerallösung Rest" },
+      "mineral_capacity": { "name": "Minerallösung Behältergröße" },
+      "mineral_range": { "name": "Minerallösung Reichweite" },
+      "mineral_type": { "name": "Minerallösung Typ" },
+      "mineral_expiry_state": { "name": "Minerallösung Haltbarkeit" },
+      "mineral_quantity_state": { "name": "Minerallösung Mengenstatus" },
+      "ec_connection_state": { "name": "Verbindung Steuerelektronik" },
+      "dosing_setting": { "name": "Dosiermenge-Einstellung" },
+      "error_state": { "name": "Gerätestatus" },
+      "serial_number": { "name": "Seriennummer" },
+      "last_fetch": { "name": "Letzter Abruf" }
+    },
     "select": {
       "concentration": {
+        "name": "Dosiermenge",
         "state": {
           "minimal": "Minimal",
           "normal": "Normal",
           "maximal": "Maximal"
         }
       }
+    },
+    "binary_sensor": {
+      "mineral_warning": { "name": "Minerallösung Warnung" }
+    }
+  },
+  "issues": {
+    "data_fetch_failed": {
+      "title": "JUDO i-dos – Datenabruf gestört",
+      "description": "Der Datenabruf ist {count}× in Folge fehlgeschlagen.\n\nLetzter Fehler: {error}\n\nDie Integration versucht es beim nächsten Intervall erneut."
     }
   }
 }

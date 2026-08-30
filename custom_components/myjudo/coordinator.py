@@ -5,9 +5,9 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from homeassistant.components import persistent_notification
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import JudoSession
@@ -15,10 +15,11 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-# Connection-failure notification handling
+# Connection-failure handling. After this many consecutive failures we raise a
+# repair issue (translatable, shown under Settings -> Repairs); it is deleted
+# automatically once a fetch succeeds again.
 _FAIL_THRESHOLD = 3
-_NOTIF_ID_ERROR = "myjudo_connection_error"
-_NOTIF_ID_OK = "myjudo_connection_restored"
+_ISSUE_ID = "data_fetch_failed"
 
 # i-dos error/warning codes (from the JUDO portal: optisoftWarnings["dos"]).
 _ERROR_STATES: dict[int, str] = {
@@ -203,33 +204,30 @@ class MyJudoCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug("JUDO keeping last known values (anti-flapping)")
                 return self.data
 
-            # Threshold reached: notify once, then let it become unavailable.
+            # Threshold reached: raise a repair issue once, then let it become
+            # unavailable. Texts live in the translation files (issues category).
             if self._consecutive_failures >= _FAIL_THRESHOLD and not self._error_notified:
                 self._error_notified = True
-                persistent_notification.async_dismiss(self.hass, _NOTIF_ID_OK)
-                persistent_notification.async_create(
+                ir.async_create_issue(
                     self.hass,
-                    title="⚠️ JUDO i-dos – Datenabruf gestört",
-                    message=(
-                        f"Der Datenabruf ist {self._consecutive_failures}× in Folge "
-                        f"fehlgeschlagen.\n\nLetzter Fehler: {err}\n\n"
-                        "Die Integration versucht es beim nächsten Intervall erneut."
-                    ),
-                    notification_id=_NOTIF_ID_ERROR,
+                    DOMAIN,
+                    _ISSUE_ID,
+                    is_fixable=False,
+                    is_persistent=False,
+                    severity=ir.IssueSeverity.WARNING,
+                    translation_key=_ISSUE_ID,
+                    translation_placeholders={
+                        "count": str(self._consecutive_failures),
+                        "error": str(err),
+                    },
                 )
             raise
 
         # --- Success ---
         if self._error_notified:
-            # We were in a real outage: clear error note + post recovery note.
+            # We were in a real outage: clear the repair issue on recovery.
             self._error_notified = False
-            persistent_notification.async_dismiss(self.hass, _NOTIF_ID_ERROR)
-            persistent_notification.async_create(
-                self.hass,
-                title="✅ JUDO i-dos – wieder erreichbar",
-                message="Der Datenabruf funktioniert wieder. Alle Werte sind aktuell.",
-                notification_id=_NOTIF_ID_OK,
-            )
+            ir.async_delete_issue(self.hass, DOMAIN, _ISSUE_ID)
 
         self._consecutive_failures = 0
 

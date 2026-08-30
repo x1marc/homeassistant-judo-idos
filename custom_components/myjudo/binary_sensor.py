@@ -34,10 +34,11 @@ class MyJudoProblemBinarySensor(
     _attr_has_entity_name = True
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
     _attr_icon = "mdi:water-alert"
+    _attr_translation_key = "mineral_warning"
 
     def __init__(self, coordinator: MyJudoCoordinator, serial: str) -> None:
         super().__init__(coordinator)
-        self._attr_name = "Minerallösung Warnung"
+        # Name comes from the "mineral_warning" translation_key.
         self._attr_unique_id = f"myjudo_{serial}_mineral_warning"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, serial)},
