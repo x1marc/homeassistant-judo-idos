@@ -222,6 +222,8 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
         data_key="mineral_expiry_state",
         translation_key="mineral_expiry_state",
         icon="mdi:calendar-alert",
+        device_class=SensorDeviceClass.ENUM,
+        options=["ok", "warning"],
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     MyJudoSensorDescription(
@@ -229,6 +231,8 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
         data_key="mineral_quantity_state",
         translation_key="mineral_quantity_state",
         icon="mdi:gauge-low",
+        device_class=SensorDeviceClass.ENUM,
+        options=["ok", "low"],
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     MyJudoSensorDescription(
@@ -236,6 +240,8 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
         data_key="ec_connection_state",
         translation_key="ec_connection_state",
         icon="mdi:connection",
+        device_class=SensorDeviceClass.ENUM,
+        options=["connected", "disconnected"],
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     MyJudoSensorDescription(
@@ -250,6 +256,11 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
         data_key="error_state",
         translation_key="error_state",
         icon="mdi:alert-circle-outline",
+        device_class=SensorDeviceClass.ENUM,
+        options=[
+            "ok", "pump_defect", "detection_defect", "container_empty",
+            "supply_low", "range_exceeded", "expired", "unknown",
+        ],
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     MyJudoSensorDescription(
@@ -314,7 +325,14 @@ class MyJudoSensor(CoordinatorEntity[MyJudoCoordinator], RestoreSensor):
         await super().async_added_to_hass()
         last = await self.async_get_last_sensor_data()
         if last is not None:
-            self._restored_value = last.native_value
+            value = last.native_value
+            # For enum sensors, drop a restored value that is no longer a valid
+            # option (e.g. an old localized text from before enum keys existed),
+            # otherwise HA would log an invalid-state error until the first poll.
+            options = self.entity_description.options
+            if options is not None and value not in options:
+                value = None
+            self._restored_value = value
 
     @property
     def available(self) -> bool:

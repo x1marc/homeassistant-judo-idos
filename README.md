@@ -194,6 +194,13 @@ JUDO-Log-Zeilen (`grep JUDO`) mit anhängen.
 
 ## Changelog
 
+- **1.14.0** – **Geräte-Statustexte übersetzbar (DE/EN):** die Diagnose-Sensoren
+  *Gerätestatus*, *Minerallösung Haltbarkeit/Mengenstatus* und *Verbindung
+  Steuerelektronik* sind jetzt Enum-Sensoren mit stabilen Schlüsseln (in der
+  Oberfläche lokalisiert). ⚠️ Deren State ist jetzt ein Schlüssel (z. B.
+  `pump_defect`) statt deutschem Klartext — Automationen, die auf den deutschen
+  Text verglichen haben, auf den Schlüssel umstellen (`== 'ok'` usw.).
+  Entity-IDs unverändert.
 - **1.13.0** – **Mehrsprachigkeit (DE/EN):** alle Entity-Namen (28 Sensoren,
   Select, Binary-Sensor) laufen über `translation_key` + `strings.json`/
   `translations/` statt hartkodiertem Deutsch — ein englisches HA zeigt jetzt

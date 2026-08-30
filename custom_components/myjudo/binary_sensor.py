@@ -79,15 +79,15 @@ class MyJudoProblemBinarySensor(
         if isinstance(level, (int, float)) and level < _LOW_LEVEL_THRESHOLD:
             return True
 
-        # 2) Device status is anything other than OK
+        # 2) Device status is anything other than OK (enum key)
         error = data.get("error_state")
-        if error is not None and error != "OK":
+        if error is not None and error != "ok":
             return True
 
-        # 3) Mineral-specific state warnings (expiry / quantity)
+        # 3) Mineral-specific state warnings (expiry / quantity), enum keys
         for key in ("mineral_quantity_state", "mineral_expiry_state"):
             state = data.get(key)
-            if state is not None and state != "OK":
+            if state is not None and state != "ok":
                 return True
 
         return False

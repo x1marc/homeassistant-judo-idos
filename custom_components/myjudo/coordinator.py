@@ -22,14 +22,17 @@ _FAIL_THRESHOLD = 3
 _ISSUE_ID = "data_fetch_failed"
 
 # i-dos error/warning codes (from the JUDO portal: optisoftWarnings["dos"]).
-_ERROR_STATES: dict[int, str] = {
-    0:  "OK",
-    1:  "Störung! Pumpenantrieb defekt",
-    2:  "Störung! Minerallösungserkennung defekt",
-    3:  "Minerallösungsbehälter leer",
-    15: "Minerallösungsvorrat gering",
-    16: "Reichweite des Minerallösungsbehälters überschritten",
-    17: "Mindesthaltbarkeitsdatum der Minerallösung überschritten",
+# Values are stable translation keys — the human-readable text lives in the
+# translation files (entity.sensor.error_state.state.*). Unmapped codes map to
+# "unknown". Keep this in sync with the "error_state" options in sensor.py.
+_ERROR_STATE_KEYS: dict[int, str] = {
+    0:  "ok",
+    1:  "pump_defect",
+    2:  "detection_defect",
+    3:  "container_empty",
+    15: "supply_low",
+    16: "range_exceeded",
+    17: "expired",
 }
 
 
@@ -374,16 +377,19 @@ class MyJudoCoordinator(DataUpdateCoordinator):
         if mineral_ml is not None and tank_ml:
             mineral_pct = round(min(100.0, mineral_ml / tank_ml * 100), 1)
 
-        # Error state -> human readable (i-dos warning codes)
+        # Error state -> stable enum key (i-dos warning codes); text via i18n.
         err = _int(errstate.get("data"))
-        error_text = _ERROR_STATES.get(err, f"Code {err}") if err is not None else None
+        error_key = (
+            _ERROR_STATE_KEYS.get(err, "unknown") if err is not None else None
+        )
 
-        # Binary-ish state values: 0 = ok, anything else = problem
-        def _ok_state(raw, ok="OK", problem="Warnung") -> str | None:
+        # Binary-ish state values: 0 = ok, anything else = problem. Returns
+        # stable enum keys (translated in the frontend), not German text.
+        def _binary_state(raw, ok_key: str, problem_key: str) -> str | None:
             v = _int(raw)
             if v is None:
                 return None
-            return ok if v == 0 else f"{problem} ({v})"
+            return ok_key if v == 0 else problem_key
 
         return {
             # m³ values
@@ -409,10 +415,10 @@ class MyJudoCoordinator(DataUpdateCoordinator):
             "mineral_range":      _int(dil_range.get("data")), # remaining range
             "mineral_type":       _str(dil_type.get("data")),  # e.g. "jul-c"
             "dosing_setting":     _str(concentr.get("data")),  # e.g. "normal"
-            "error_state":        error_text,                  # "OK" / warning text
-            "mineral_expiry_state":  _ok_state(dil_expiry.get("data"), problem="MHD-Warnung"),
-            "mineral_quantity_state": _ok_state(dil_qstate.get("data"), problem="Menge niedrig"),
-            "ec_connection_state":   _ok_state(ec_conn.get("data"), problem="getrennt"),
+            "error_state":        error_key,                   # enum key, i18n
+            "mineral_expiry_state":   _binary_state(dil_expiry.get("data"), "ok", "warning"),
+            "mineral_quantity_state": _binary_state(dil_qstate.get("data"), "ok", "low"),
+            "ec_connection_state":    _binary_state(ec_conn.get("data"), "connected", "disconnected"),
             # device info / diagnostics
             "devcomm_version":  _str(devcomm.get("data")),
             "init_date":        init_date,

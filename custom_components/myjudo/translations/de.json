@@ -53,11 +53,32 @@
       "mineral_capacity": { "name": "Minerallösung Behältergröße" },
       "mineral_range": { "name": "Minerallösung Reichweite" },
       "mineral_type": { "name": "Minerallösung Typ" },
-      "mineral_expiry_state": { "name": "Minerallösung Haltbarkeit" },
-      "mineral_quantity_state": { "name": "Minerallösung Mengenstatus" },
-      "ec_connection_state": { "name": "Verbindung Steuerelektronik" },
+      "mineral_expiry_state": {
+        "name": "Minerallösung Haltbarkeit",
+        "state": { "ok": "OK", "warning": "MHD-Warnung" }
+      },
+      "mineral_quantity_state": {
+        "name": "Minerallösung Mengenstatus",
+        "state": { "ok": "OK", "low": "Menge niedrig" }
+      },
+      "ec_connection_state": {
+        "name": "Verbindung Steuerelektronik",
+        "state": { "connected": "Verbunden", "disconnected": "Getrennt" }
+      },
       "dosing_setting": { "name": "Dosiermenge-Einstellung" },
-      "error_state": { "name": "Gerätestatus" },
+      "error_state": {
+        "name": "Gerätestatus",
+        "state": {
+          "ok": "OK",
+          "pump_defect": "Störung! Pumpenantrieb defekt",
+          "detection_defect": "Störung! Minerallösungserkennung defekt",
+          "container_empty": "Minerallösungsbehälter leer",
+          "supply_low": "Minerallösungsvorrat gering",
+          "range_exceeded": "Reichweite des Minerallösungsbehälters überschritten",
+          "expired": "Mindesthaltbarkeitsdatum der Minerallösung überschritten",
+          "unknown": "Unbekannt"
+        }
+      },
       "serial_number": { "name": "Seriennummer" },
       "last_fetch": { "name": "Letzter Abruf" }
     },

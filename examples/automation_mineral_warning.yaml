@@ -34,8 +34,8 @@
         message: >
           Minerallösung prüfen!
           {% set lvl = state_attr('binary_sensor.judo_i_dos_minerallosung_warnung', 'mineral_level') %}
-          {% set err = state_attr('binary_sensor.judo_i_dos_minerallosung_warnung', 'error_state') %}
-          Vorrat: {{ lvl if lvl is not none else '?' }} % · Status: {{ err if err else '?' }}
+          Vorrat: {{ lvl if lvl is not none else '?' }} % · Details siehe Sensor
+          „Gerätestatus" (sensor.judo_i_dos_geratestatus).
     # Optional Handy-Push — Dienstnamen anpassen und Kommentar entfernen:
     # - service: notify.mobile_app_DEIN_HANDY
     #   data:

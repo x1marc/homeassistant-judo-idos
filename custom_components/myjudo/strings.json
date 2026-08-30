@@ -53,11 +53,32 @@
       "mineral_capacity": { "name": "Mineral solution container size" },
       "mineral_range": { "name": "Mineral solution range" },
       "mineral_type": { "name": "Mineral solution type" },
-      "mineral_expiry_state": { "name": "Mineral solution shelf life" },
-      "mineral_quantity_state": { "name": "Mineral solution quantity status" },
-      "ec_connection_state": { "name": "Control electronics connection" },
+      "mineral_expiry_state": {
+        "name": "Mineral solution shelf life",
+        "state": { "ok": "OK", "warning": "Best-before warning" }
+      },
+      "mineral_quantity_state": {
+        "name": "Mineral solution quantity status",
+        "state": { "ok": "OK", "low": "Quantity low" }
+      },
+      "ec_connection_state": {
+        "name": "Control electronics connection",
+        "state": { "connected": "Connected", "disconnected": "Disconnected" }
+      },
       "dosing_setting": { "name": "Dosing amount setting" },
-      "error_state": { "name": "Device status" },
+      "error_state": {
+        "name": "Device status",
+        "state": {
+          "ok": "OK",
+          "pump_defect": "Fault: pump drive defective",
+          "detection_defect": "Fault: mineral solution detection defective",
+          "container_empty": "Mineral solution container empty",
+          "supply_low": "Mineral solution supply low",
+          "range_exceeded": "Mineral solution container range exceeded",
+          "expired": "Mineral solution best-before date exceeded",
+          "unknown": "Unknown"
+        }
+      },
       "serial_number": { "name": "Serial number" },
       "last_fetch": { "name": "Last fetch" }
     },
