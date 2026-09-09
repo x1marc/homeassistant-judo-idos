@@ -194,6 +194,11 @@ JUDO-Log-Zeilen (`grep JUDO`) mit anhängen.
 
 ## Changelog
 
+- **1.14.1** – **Andere i-dos-Modelle (z. B. i-dos eco) werden beim Setup
+  erkannt:** der echte Gerätetyp (`wtuType`) wird via `register/show` ermittelt
+  und für `connect` genutzt (vorher fest `i-dos` → „no electrical control
+  found" bei der eco-Variante). Zudem klarere Setup-Fehlermeldungen (fehlende
+  Verbindung zur Steuerelektronik bzw. Seriennummer nicht im Konto).
 - **1.14.0** – **Geräte-Statustexte übersetzbar (DE/EN):** die Diagnose-Sensoren
   *Gerätestatus*, *Minerallösung Haltbarkeit/Mengenstatus* und *Verbindung
   Steuerelektronik* sind jetzt Enum-Sensoren mit stabilen Schlüsseln (in der

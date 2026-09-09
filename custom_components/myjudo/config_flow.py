@@ -58,12 +58,41 @@ async def _try_login(username: str, password: str, serial: str) -> str | None:
 
     token = login["token"]
 
-    # Step 2: Connect to verify serial
+    # Step 2: Resolve the device model. register/show lists the account's
+    # devices with their model id, e.g.
+    #   [{"wtuType": "i-dos", "serial number": "NNNNN"}]
+    # connect needs that model id as its "parameter" — hardcoding "i-dos" fails
+    # on other models (e.g. i-dos eco) with "not connected: no electrical
+    # control found". If show is unavailable we fall back to "i-dos".
+    show = await judo_get({"token": token, "group": "register", "command": "show"})
+    wtu_type: str | None = None
+    if show.get("status") == "ok":
+        devices = show.get("data") or []
+        match = next(
+            (d for d in devices if str(d.get("serial number")).strip() == serial),
+            None,
+        )
+        if match is not None:
+            wtu_type = match.get("wtuType")
+            _LOGGER.debug("JUDO device model for %s: %s", serial, wtu_type)
+        elif devices:
+            _LOGGER.warning(
+                "JUDO serial %s not on this account (have: %s)",
+                serial, [d.get("serial number") for d in devices],
+            )
+            return "serial_not_found"
+    else:
+        _LOGGER.debug(
+            "JUDO register/show unavailable (%s); using default model",
+            show.get("status"),
+        )
+
+    # Step 3: Connect to verify the device is reachable, using the model id.
     conn = await judo_get({
         "token": token,
         "group": "register",
         "command": "connect",
-        "parameter": "i-dos",
+        "parameter": wtu_type or "i-dos",
         "serial number": serial,
     })
     _LOGGER.debug("JUDO connect status: %s", conn.get("status"))
@@ -72,7 +101,12 @@ async def _try_login(username: str, password: str, serial: str) -> str | None:
         _LOGGER.warning("JUDO server not responding during connect")
         return "cannot_connect"
     if conn.get("status") != "ok":
-        _LOGGER.warning("JUDO connect rejected: %s", conn.get("data"))
+        detail = str(conn.get("data") or "")
+        _LOGGER.warning("JUDO connect rejected: %s", detail)
+        if "no electrical control" in detail.lower():
+            # Server + module reachable, but the module reports no link to the
+            # device electronics (device offline/unpaired at the device end).
+            return "no_electrical_control"
         return "cannot_connect"
 
     return None

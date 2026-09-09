@@ -14,7 +14,9 @@
     },
     "error": {
       "invalid_auth": "Benutzername oder Passwort ungültig.",
-      "cannot_connect": "Gerät nicht erreichbar. Bitte prüfe deine Verbindung."
+      "cannot_connect": "Gerät nicht erreichbar. Bitte prüfe deine Verbindung.",
+      "no_electrical_control": "Das Gerät ist online, aber das Modul meldet keine Verbindung zur Steuerelektronik. Bitte prüfe das i-dos in der JUDO-App und starte das Gerät neu, dann erneut versuchen.",
+      "serial_not_found": "Diese Seriennummer ist in deinem myjudo.eu-Konto nicht registriert. Bitte prüfe die Nummer."
     },
     "abort": {
       "already_configured": "Gerät ist bereits konfiguriert."

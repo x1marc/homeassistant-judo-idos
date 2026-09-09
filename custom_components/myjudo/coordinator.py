@@ -74,6 +74,10 @@ class MyJudoCoordinator(DataUpdateCoordinator):
         self._username = username
         self._password = password
         self._serial = serial
+        # Device model id (wtuType, e.g. "i-dos" / "i-dos eco") used as the
+        # connect "parameter". Resolved once via register/show, then cached —
+        # it never changes for a given device.
+        self._wtu_type: str | None = None
         # Track consecutive failures for notification + anti-flapping handling
         self._consecutive_failures = 0
         self._error_notified = False
@@ -146,11 +150,26 @@ class MyJudoCoordinator(DataUpdateCoordinator):
         _LOGGER.debug("JUDO login ok")
         await asyncio.sleep(0.3)
 
+        # Resolve the device model once (connect needs it as "parameter";
+        # hardcoding "i-dos" fails on other models like i-dos eco). register/show
+        # returns e.g. [{"wtuType": "i-dos", "serial number": "NNNNN"}].
+        if self._wtu_type is None:
+            show = await session.get({
+                "token": token, "group": "register", "command": "show",
+            })
+            if show.get("status") == "ok":
+                for dev in show.get("data") or []:
+                    if str(dev.get("serial number")).strip() == self._serial:
+                        self._wtu_type = dev.get("wtuType")
+                        break
+                _LOGGER.debug("JUDO device model: %s", self._wtu_type)
+            await asyncio.sleep(0.3)
+
         conn = await session.get({
             "token": token,
             "group": "register",
             "command": "connect",
-            "parameter": "i-dos",
+            "parameter": self._wtu_type or "i-dos",
             "serial number": self._serial,
         })
         if not conn:

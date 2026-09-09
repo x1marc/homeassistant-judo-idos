@@ -14,7 +14,9 @@
     },
     "error": {
       "invalid_auth": "Invalid username or password.",
-      "cannot_connect": "Could not reach device. Please check your connection."
+      "cannot_connect": "Could not reach device. Please check your connection.",
+      "no_electrical_control": "The device is online, but its module reports no connection to the control electronics. Please check the i-dos in the JUDO app and restart the device, then try again.",
+      "serial_not_found": "This serial number is not registered on your myjudo.eu account. Please double-check the number."
     },
     "abort": {
       "already_configured": "Device is already configured."
