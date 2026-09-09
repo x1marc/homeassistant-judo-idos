@@ -95,6 +95,37 @@ async def _try_login(username: str, password: str, serial: str) -> str | None:
             show.get("status"),
         )
 
+    # DIAGNOSTIC PROBE (v1.14.3): when register/show returns no usable model
+    # (empty device list, as seen with Connectivity-Module devices like the
+    # i-dos eco / i-soft), we cannot auto-detect the connect model id. Probe a
+    # curated candidate list and log which one — if any — the server accepts.
+    # Purely diagnostic; the normal connect below is unchanged. Remove once the
+    # correct id is known.
+    if wtu_type is None:
+        for cand in (
+            "i-dos eco", "i-dos-eco", "i-doseco",
+            "i-soft", "i-soft pro", "i-soft PRO", "i-soft plus",
+            "i-soft safe", "i-soft K",
+        ):
+            probe = await judo_get({
+                "token": token,
+                "group": "register",
+                "command": "connect",
+                "parameter": cand,
+                "serial number": serial,
+            })
+            _LOGGER.warning(
+                "JUDO connect probe — parameter=%s -> status=%s detail=%s",
+                cand, probe.get("status"), probe.get("data"),
+            )
+            if probe.get("status") == "ok":
+                _LOGGER.warning(
+                    "JUDO connect probe SUCCESS — the correct model id is: %s",
+                    cand,
+                )
+                wtu_type = cand
+                break
+
     # Step 3: Connect to verify the device is reachable, using the model id.
     # DIAGNOSTIC (v1.14.2): show which parameter we actually send to connect.
     _LOGGER.warning(

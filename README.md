@@ -194,6 +194,11 @@ JUDO-Log-Zeilen (`grep JUDO`) mit anhängen.
 
 ## Changelog
 
+- **1.14.3** – **Modell-Probe für Connectivity-Modul-Geräte (Diagnose):** liefert
+  `register/show` keine Geräte (`data=[]`, wie bei i-dos eco / i-soft), probiert
+  der Setup automatisch mögliche Modell-Kennungen beim `connect` durch und loggt,
+  welche der Server akzeptiert — zur Ermittlung der korrekten Kennung anderer
+  Modelle. Rein diagnostisch, keine Zugangsdaten/Tokens im Log.
 - **1.14.2** – **Diagnose-Logging beim Setup:** die rohe `register/show`-Antwort
   und der beim `connect` verwendete Gerätetyp werden auf `WARNING`-Level geloggt,
   damit die Info zur Fehlersuche bei anderen Modellen (i-dos eco, i-soft Pro)
