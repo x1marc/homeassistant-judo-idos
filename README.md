@@ -16,6 +16,14 @@ Assistant einbindet.
 > ✅ Funktioniert **ohne** separates *Connectivity Module* — das i-dos
 > verbindet sich selbst per WLAN mit der JUDO-Cloud.
 
+> ⚠️ **Geräte-Kompatibilität.** Diese Integration ist für den **JUDO i-dos mit
+> eingebautem WLAN-Modul** gedacht. Geräte mit **JUDO Connectivity-Modul**
+> (eingebaut oder gesteckt, meist per LAN) — z. B. die **i-soft-Familie** oder
+> eine **i-dos eco mit integriertem Modul** — werden vom hier genutzten
+> Cloud-Relay **nicht** bedient und lassen sich nicht einrichten (der Setup meldet
+> das eindeutig). Für solche Geräte gibt es lokale REST-API-Integrationen wie
+> [mibragri/ha-judo-isoft](https://github.com/mibragri/ha-judo-isoft).
+
 ---
 
 ## Features
@@ -194,6 +202,13 @@ JUDO-Log-Zeilen (`grep JUDO`) mit anhängen.
 
 ## Changelog
 
+- **1.14.4** – **Klare Fehlermeldung für Connectivity-Modul-/LAN-Geräte:** Geräte
+  mit JUDO Connectivity-Modul (eingebaut oder gesteckt, meist LAN) — z. B. die
+  i-soft-Familie oder eine i-dos eco mit integriertem Modul — werden vom
+  Cloud-Relay dieser Integration nicht bedient (`register/show` liefert eine leere
+  Liste). Der Setup erkennt das jetzt und verweist eindeutig auf eine lokale
+  REST-API-Integration, statt „Gerät nicht erreichbar". Zudem wurde das
+  temporäre Diagnose-Logging/die Modell-Probe aus 1.14.2/1.14.3 wieder entfernt.
 - **1.14.3** – **Modell-Probe für Connectivity-Modul-Geräte (Diagnose):** liefert
   `register/show` keine Geräte (`data=[]`, wie bei i-dos eco / i-soft), probiert
   der Setup automatisch mögliche Modell-Kennungen beim `connect` durch und loggt,

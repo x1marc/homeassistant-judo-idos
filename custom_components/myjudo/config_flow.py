@@ -64,16 +64,18 @@ async def _try_login(username: str, password: str, serial: str) -> str | None:
     # connect needs that model id as its "parameter" — hardcoding "i-dos" fails
     # on other models (e.g. i-dos eco) with "not connected: no electrical
     # control found". If show is unavailable we fall back to "i-dos".
+    #
+    # NOTE: devices behind a JUDO Connectivity Module (built-in or plug-in,
+    # typically LAN — e.g. i-soft family or an i-dos eco with integrated module)
+    # are NOT served by this cloud relay: register/show returns an empty device
+    # list for them and connect then reports "no electrical control found" for
+    # every model id (confirmed with a real i-dos eco + i-soft Pro, issue #1).
+    # Such devices need the local REST API integration instead (see README).
+    # We detect that case below (device not listed + no electrical control) and
+    # return a dedicated error rather than the generic "device unreachable".
     show = await judo_get({"token": token, "group": "register", "command": "show"})
-    # DIAGNOSTIC (v1.14.2): dump the raw device list at WARNING level so it
-    # surfaces without debug logging. For other models (i-dos eco, i-soft Pro)
-    # this reveals the exact field names and model id that register/show returns
-    # — needed to fix model detection. The session token is never in this data.
-    _LOGGER.warning(
-        "JUDO register/show diagnostic — status=%s data=%s",
-        show.get("status"), show.get("data"),
-    )
     wtu_type: str | None = None
+    device_listed = False
     if show.get("status") == "ok":
         devices = show.get("data") or []
         match = next(
@@ -81,6 +83,7 @@ async def _try_login(username: str, password: str, serial: str) -> str | None:
             None,
         )
         if match is not None:
+            device_listed = True
             wtu_type = match.get("wtuType")
             _LOGGER.debug("JUDO device model for %s: %s", serial, wtu_type)
         elif devices:
@@ -89,49 +92,18 @@ async def _try_login(username: str, password: str, serial: str) -> str | None:
                 serial, [d.get("serial number") for d in devices],
             )
             return "serial_not_found"
+        else:
+            _LOGGER.debug(
+                "JUDO register/show returned no devices — likely a "
+                "Connectivity-Module/LAN device the cloud relay does not serve"
+            )
     else:
         _LOGGER.debug(
             "JUDO register/show unavailable (%s); using default model",
             show.get("status"),
         )
 
-    # DIAGNOSTIC PROBE (v1.14.3): when register/show returns no usable model
-    # (empty device list, as seen with Connectivity-Module devices like the
-    # i-dos eco / i-soft), we cannot auto-detect the connect model id. Probe a
-    # curated candidate list and log which one — if any — the server accepts.
-    # Purely diagnostic; the normal connect below is unchanged. Remove once the
-    # correct id is known.
-    if wtu_type is None:
-        for cand in (
-            "i-dos eco", "i-dos-eco", "i-doseco",
-            "i-soft", "i-soft pro", "i-soft PRO", "i-soft plus",
-            "i-soft safe", "i-soft K",
-        ):
-            probe = await judo_get({
-                "token": token,
-                "group": "register",
-                "command": "connect",
-                "parameter": cand,
-                "serial number": serial,
-            })
-            _LOGGER.warning(
-                "JUDO connect probe — parameter=%s -> status=%s detail=%s",
-                cand, probe.get("status"), probe.get("data"),
-            )
-            if probe.get("status") == "ok":
-                _LOGGER.warning(
-                    "JUDO connect probe SUCCESS — the correct model id is: %s",
-                    cand,
-                )
-                wtu_type = cand
-                break
-
     # Step 3: Connect to verify the device is reachable, using the model id.
-    # DIAGNOSTIC (v1.14.2): show which parameter we actually send to connect.
-    _LOGGER.warning(
-        "JUDO connect diagnostic — parameter=%s serial=%s",
-        wtu_type or "i-dos", serial,
-    )
     conn = await judo_get({
         "token": token,
         "group": "register",
@@ -148,8 +120,15 @@ async def _try_login(username: str, password: str, serial: str) -> str | None:
         detail = str(conn.get("data") or "")
         _LOGGER.warning("JUDO connect rejected: %s", detail)
         if "no electrical control" in detail.lower():
-            # Server + module reachable, but the module reports no link to the
-            # device electronics (device offline/unpaired at the device end).
+            if not device_listed:
+                # register/show listed no device for this serial AND connect
+                # finds no electrical control → the device is not on the i-dos
+                # cloud relay at all (Connectivity-Module/LAN device). This
+                # integration cannot reach it; point the user to the local
+                # REST API integration instead.
+                return "unsupported_device"
+            # Device IS listed, but the module reports no link to the device
+            # electronics right now (device offline/unpaired at the device end).
             return "no_electrical_control"
         return "cannot_connect"
 

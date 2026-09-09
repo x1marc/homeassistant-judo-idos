@@ -16,7 +16,8 @@
       "invalid_auth": "Benutzername oder Passwort ungültig.",
       "cannot_connect": "Gerät nicht erreichbar. Bitte prüfe deine Verbindung.",
       "no_electrical_control": "Das Gerät ist online, aber das Modul meldet keine Verbindung zur Steuerelektronik. Bitte prüfe das i-dos in der JUDO-App und starte das Gerät neu, dann erneut versuchen.",
-      "serial_not_found": "Diese Seriennummer ist in deinem myjudo.eu-Konto nicht registriert. Bitte prüfe die Nummer."
+      "serial_not_found": "Diese Seriennummer ist in deinem myjudo.eu-Konto nicht registriert. Bitte prüfe die Nummer.",
+      "unsupported_device": "Dieses Gerät nutzt ein JUDO Connectivity-Modul (meist per LAN) und wird von dieser Cloud-Integration nicht bedient. Geräte wie die i-soft-Familie oder eine i-dos eco mit integriertem Connectivity-Modul benötigen stattdessen eine lokale REST-API-Integration (siehe README)."
     },
     "abort": {
       "already_configured": "Gerät ist bereits konfiguriert."
