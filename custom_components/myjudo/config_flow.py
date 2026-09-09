@@ -65,6 +65,14 @@ async def _try_login(username: str, password: str, serial: str) -> str | None:
     # on other models (e.g. i-dos eco) with "not connected: no electrical
     # control found". If show is unavailable we fall back to "i-dos".
     show = await judo_get({"token": token, "group": "register", "command": "show"})
+    # DIAGNOSTIC (v1.14.2): dump the raw device list at WARNING level so it
+    # surfaces without debug logging. For other models (i-dos eco, i-soft Pro)
+    # this reveals the exact field names and model id that register/show returns
+    # — needed to fix model detection. The session token is never in this data.
+    _LOGGER.warning(
+        "JUDO register/show diagnostic — status=%s data=%s",
+        show.get("status"), show.get("data"),
+    )
     wtu_type: str | None = None
     if show.get("status") == "ok":
         devices = show.get("data") or []
@@ -88,6 +96,11 @@ async def _try_login(username: str, password: str, serial: str) -> str | None:
         )
 
     # Step 3: Connect to verify the device is reachable, using the model id.
+    # DIAGNOSTIC (v1.14.2): show which parameter we actually send to connect.
+    _LOGGER.warning(
+        "JUDO connect diagnostic — parameter=%s serial=%s",
+        wtu_type or "i-dos", serial,
+    )
     conn = await judo_get({
         "token": token,
         "group": "register",

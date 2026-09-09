@@ -194,6 +194,11 @@ JUDO-Log-Zeilen (`grep JUDO`) mit anhängen.
 
 ## Changelog
 
+- **1.14.2** – **Diagnose-Logging beim Setup:** die rohe `register/show`-Antwort
+  und der beim `connect` verwendete Gerätetyp werden auf `WARNING`-Level geloggt,
+  damit die Info zur Fehlersuche bei anderen Modellen (i-dos eco, i-soft Pro)
+  ohne aktiviertes Debug im Protokoll sichtbar ist. Keine Zugangsdaten/Tokens im
+  Log. (Zwischen-Release rein zur Diagnose.)
 - **1.14.1** – **Andere i-dos-Modelle (z. B. i-dos eco) werden beim Setup
   erkannt:** der echte Gerätetyp (`wtuType`) wird via `register/show` ermittelt
   und für `connect` genutzt (vorher fest `i-dos` → „no electrical control
