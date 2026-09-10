@@ -202,6 +202,10 @@ JUDO-Log-Zeilen (`grep JUDO`) mit anhängen.
 
 ## Changelog
 
+- **1.15.1** – **Fix:** ein während eines Serverausfalls erzeugtes Repair-Issue
+  (`data_fetch_failed`) blieb nach einem Neustart/Reload hängen, weil die
+  Erholungs-Löschung am zurückgesetzten In-Memory-Flag hing. Es wird jetzt bei
+  jedem erfolgreichen Abruf zuverlässig aufgeräumt.
 - **1.15.0** – **Reifegrad-Update:** Neuer Sensor **„Mineraltank Restlaufzeit"**
   (JUDO liefert die Reichweite in Tagen → jetzt echter `duration`-Sensor in Tagen;
   der frühere *Reichweite*-Sensor wurde umgestellt). **Diagnose-Download** (redigiert,

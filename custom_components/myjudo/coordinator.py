@@ -250,10 +250,13 @@ class MyJudoCoordinator(DataUpdateCoordinator):
             raise
 
         # --- Success ---
-        if self._error_notified:
-            # We were in a real outage: clear the repair issue on recovery.
-            self._error_notified = False
-            ir.async_delete_issue(self.hass, DOMAIN, _ISSUE_ID)
+        # Always clear any lingering repair issue on a good fetch — including one
+        # left over from before a restart/reload. The delete cannot be gated on
+        # the in-memory `_error_notified` flag: that flag resets to False on a
+        # fresh coordinator, so an issue created before a reload would otherwise
+        # never be removed. async_delete_issue is a no-op if no issue exists.
+        self._error_notified = False
+        ir.async_delete_issue(self.hass, DOMAIN, _ISSUE_ID)
 
         self._consecutive_failures = 0
 
