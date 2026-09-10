@@ -159,6 +159,9 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
         icon="mdi:calendar-start",
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_category=EntityCategory.DIAGNOSTIC,
+        # Static value that almost never changes — off by default to keep the
+        # entity list tidy; users who want it can enable it in the registry.
+        entity_registry_enabled_default=False,
     ),
     MyJudoSensorDescription(
         key="service_date",
@@ -167,6 +170,7 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
         icon="mdi:calendar-clock",
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     MyJudoSensorDescription(
         key="devcomm_version",
@@ -174,6 +178,7 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
         translation_key="devcomm_version",
         icon="mdi:chip",
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     MyJudoSensorDescription(
         key="mineral_level",
@@ -201,12 +206,18 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
         native_unit_of_measurement="mL",
         entity_category=EntityCategory.DIAGNOSTIC,
         suggested_display_precision=0,
+        entity_registry_enabled_default=False,
     ),
     MyJudoSensorDescription(
         key="mineral_range",
         data_key="mineral_range",
         translation_key="mineral_range",
-        icon="mdi:calendar-range",
+        icon="mdi:calendar-clock",
+        # JUDO reports the "dilution range" (Reichweite) directly in days, so
+        # this is the mineral tank's remaining running time. Expose it as a
+        # proper duration in days rather than a bare number.
+        device_class=SensorDeviceClass.DURATION,
+        native_unit_of_measurement=UnitOfTime.DAYS,
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=0,
     ),
@@ -216,6 +227,7 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
         translation_key="mineral_type",
         icon="mdi:flask-outline",
         entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
     ),
     MyJudoSensorDescription(
         key="mineral_expiry_state",
@@ -269,6 +281,9 @@ SENSORS: tuple[MyJudoSensorDescription, ...] = (
         translation_key="serial_number",
         icon="mdi:barcode",
         entity_category=EntityCategory.DIAGNOSTIC,
+        # Redundant with the device's own serial (shown on the device page) —
+        # off by default.
+        entity_registry_enabled_default=False,
     ),
     MyJudoSensorDescription(
         key="last_fetch",

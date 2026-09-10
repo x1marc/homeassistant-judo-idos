@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -144,8 +144,12 @@ class MyJudoCoordinator(DataUpdateCoordinator):
                 "outage at my-judo.com. Will retry next interval."
             )
         if login.get("status") != "ok" or "token" not in login:
-            raise UpdateFailed(f"Login rejected: {login.get('data')} "
-                               "(check username/password)")
+            # Credentials genuinely rejected (not a timeout) — trigger HA's
+            # reauth flow so the user can re-enter the password, instead of the
+            # entry just going unavailable.
+            raise ConfigEntryAuthFailed(
+                f"Login rejected: {login.get('data')} (check username/password)"
+            )
         token = login["token"]
         _LOGGER.debug("JUDO login ok")
         await asyncio.sleep(0.3)
@@ -195,7 +199,7 @@ class MyJudoCoordinator(DataUpdateCoordinator):
                 "command": "concentration adjustment",
                 "parameter": value,
             })
-        except UpdateFailed as err:
+        except (UpdateFailed, ConfigEntryAuthFailed) as err:
             raise HomeAssistantError(f"JUDO nicht erreichbar: {err}") from err
         finally:
             await session.aclose()

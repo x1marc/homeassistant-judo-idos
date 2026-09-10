@@ -10,6 +10,22 @@
           "serial_number": "Seriennummer (am Gerät / in der App)",
           "scan_interval": "Abrufintervall (Minuten)"
         }
+      },
+      "reauth_confirm": {
+        "title": "JUDO i-dos neu anmelden",
+        "description": "Deine myjudo.eu-Zugangsdaten wurden abgelehnt. Bitte gib sie erneut ein.",
+        "data": {
+          "username": "Benutzername",
+          "password": "Passwort"
+        }
+      },
+      "reconfigure": {
+        "title": "JUDO i-dos neu konfigurieren",
+        "description": "Aktualisiere deine myjudo.eu-Zugangsdaten für dieses Gerät.",
+        "data": {
+          "username": "Benutzername",
+          "password": "Passwort"
+        }
       }
     },
     "error": {
@@ -20,7 +36,9 @@
       "unsupported_device": "Dieses Gerät nutzt ein JUDO Connectivity-Modul (meist per LAN) und wird von dieser Cloud-Integration nicht bedient. Geräte wie die i-soft-Familie oder eine i-dos eco mit integriertem Connectivity-Modul benötigen stattdessen eine lokale REST-API-Integration (siehe README)."
     },
     "abort": {
-      "already_configured": "Gerät ist bereits konfiguriert."
+      "already_configured": "Gerät ist bereits konfiguriert.",
+      "reauth_successful": "Neuanmeldung war erfolgreich.",
+      "reconfigure_successful": "Neukonfiguration war erfolgreich."
     }
   },
   "options": {
@@ -54,7 +72,7 @@
       "mineral_level": { "name": "Minerallösung Vorrat" },
       "mineral_remaining": { "name": "Minerallösung Rest" },
       "mineral_capacity": { "name": "Minerallösung Behältergröße" },
-      "mineral_range": { "name": "Minerallösung Reichweite" },
+      "mineral_range": { "name": "Mineraltank Restlaufzeit" },
       "mineral_type": { "name": "Minerallösung Typ" },
       "mineral_expiry_state": {
         "name": "Minerallösung Haltbarkeit",

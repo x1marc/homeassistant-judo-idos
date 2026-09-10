@@ -202,6 +202,14 @@ JUDO-Log-Zeilen (`grep JUDO`) mit anhängen.
 
 ## Changelog
 
+- **1.15.0** – **Reifegrad-Update:** Neuer Sensor **„Mineraltank Restlaufzeit"**
+  (JUDO liefert die Reichweite in Tagen → jetzt echter `duration`-Sensor in Tagen;
+  der frühere *Reichweite*-Sensor wurde umgestellt). **Diagnose-Download** (redigiert,
+  ohne Zugangsdaten/Serial/Token) über *Geräte & Dienste → ⋮*. **Reauth-Flow** bei
+  ungültigen Zugangsdaten und **Reconfigure-Flow** zum Ändern von Zugangsdaten/Serial
+  ohne Neu-Einrichtung. Selten benötigte Diagnose-Sensoren (Modul-Firmware,
+  Inbetriebnahme-/Service-Datum, Behältergröße, Minerallösungs-Typ, Seriennummer) sind
+  jetzt standardmäßig deaktiviert (bestehende Installationen unverändert).
 - **1.14.4** – **Klare Fehlermeldung für Connectivity-Modul-/LAN-Geräte:** Geräte
   mit JUDO Connectivity-Modul (eingebaut oder gesteckt, meist LAN) — z. B. die
   i-soft-Familie oder eine i-dos eco mit integriertem Modul — werden vom

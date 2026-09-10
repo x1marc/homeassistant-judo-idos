@@ -176,6 +176,90 @@ class MyJudoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+    async def async_step_reauth(
+        self, entry_data: dict[str, Any]
+    ) -> FlowResult:
+        """Triggered when the coordinator reports the credentials are invalid."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Ask for the password again and update the existing entry in place."""
+        errors: dict[str, str] = {}
+        entry = self._get_reauth_entry()
+        serial = entry.data[CONF_SERIAL]
+
+        if user_input is not None:
+            username = user_input["username"].strip()
+            password = user_input["password"].strip()
+            try:
+                error_key = await _try_login(username, password, serial)
+            except Exception as exc:
+                _LOGGER.warning("JUDO reauth error: %s – %s", type(exc).__name__, exc)
+                error_key = "cannot_connect"
+
+            if error_key:
+                errors["base"] = error_key
+            else:
+                return self.async_update_reload_and_abort(
+                    entry,
+                    data_updates={"username": username, "password": password},
+                )
+
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema({
+                vol.Required("username", default=entry.data["username"]): str,
+                vol.Required("password"): TextSelector(
+                    TextSelectorConfig(type=TextSelectorType.PASSWORD)
+                ),
+            }),
+            errors=errors,
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Update the myjudo.eu credentials without deleting/re-adding the entry.
+
+        The serial number is the device identity (unique_id) and is intentionally
+        not editable here — a different device should be added as its own entry.
+        """
+        errors: dict[str, str] = {}
+        entry = self._get_reconfigure_entry()
+        serial = entry.data[CONF_SERIAL]
+
+        if user_input is not None:
+            username = user_input["username"].strip()
+            password = user_input["password"].strip()
+            try:
+                error_key = await _try_login(username, password, serial)
+            except Exception as exc:
+                _LOGGER.warning(
+                    "JUDO reconfigure error: %s – %s", type(exc).__name__, exc
+                )
+                error_key = "cannot_connect"
+
+            if error_key:
+                errors["base"] = error_key
+            else:
+                return self.async_update_reload_and_abort(
+                    entry,
+                    data_updates={"username": username, "password": password},
+                )
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=vol.Schema({
+                vol.Required("username", default=entry.data["username"]): str,
+                vol.Required("password"): TextSelector(
+                    TextSelectorConfig(type=TextSelectorType.PASSWORD)
+                ),
+            }),
+            errors=errors,
+        )
+
     @staticmethod
     @callback
     def async_get_options_flow(

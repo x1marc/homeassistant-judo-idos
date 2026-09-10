@@ -10,6 +10,22 @@
           "serial_number": "Serial number (on the device / in the app)",
           "scan_interval": "Poll interval (minutes)"
         }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate JUDO i-dos",
+        "description": "Your myjudo.eu credentials were rejected. Please enter them again.",
+        "data": {
+          "username": "Username",
+          "password": "Password"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure JUDO i-dos",
+        "description": "Update your myjudo.eu credentials for this device.",
+        "data": {
+          "username": "Username",
+          "password": "Password"
+        }
       }
     },
     "error": {
@@ -20,7 +36,9 @@
       "unsupported_device": "This device uses a JUDO Connectivity Module (usually LAN) and is not served by this cloud integration. Devices like the i-soft family or an i-dos eco with a built-in Connectivity Module need a local REST API integration instead (see the README)."
     },
     "abort": {
-      "already_configured": "Device is already configured."
+      "already_configured": "Device is already configured.",
+      "reauth_successful": "Re-authentication was successful.",
+      "reconfigure_successful": "Reconfiguration was successful."
     }
   },
   "options": {
@@ -54,7 +72,7 @@
       "mineral_level": { "name": "Mineral solution supply" },
       "mineral_remaining": { "name": "Mineral solution remaining" },
       "mineral_capacity": { "name": "Mineral solution container size" },
-      "mineral_range": { "name": "Mineral solution range" },
+      "mineral_range": { "name": "Mineral tank remaining time" },
       "mineral_type": { "name": "Mineral solution type" },
       "mineral_expiry_state": {
         "name": "Mineral solution shelf life",
